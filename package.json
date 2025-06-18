@@ -10,12 +10,33 @@
 		"pages:build": "npx @cloudflare/next-on-pages",
 		"preview": "npm run pages:build && wrangler pages dev",
 		"deploy": "npm run pages:build && wrangler pages deploy",
-		"cf-typegen": "wrangler types --env-interface CloudflareEnv ./env.d.ts"
+		"cf-typegen": "wrangler types --env-interface CloudflareEnv ./env.d.ts",
+		"components:scan": "node scripts/scan-components.js",
+		"components:update": "node scripts/update-component-mappings.js",
+		"components:sync": "npm run components:update",
+		"prebuild": "node scripts/smart-prebuild.js"
 	},
 	"dependencies": {
+		"@mdx-js/loader": "^3.1.0",
+		"@mdx-js/react": "^3.1.0",
+		"@next/mdx": "^15.3.3",
+		"@types/mdx": "^2.0.13",
+		"chart.js": "^4.5.0",
+		"class-variance-authority": "^0.7.1",
+		"clsx": "^2.1.1",
+		"framer-motion": "^12.18.1",
+		"gray-matter": "^4.0.3",
+		"lucide-react": "^0.517.0",
 		"next": "15.3.3",
+		"next-mdx-remote": "^5.0.0",
 		"react": "^19.0.0",
-		"react-dom": "^19.0.0"
+		"react-chartjs-2": "^5.3.0",
+		"react-dom": "^19.0.0",
+		"reading-time": "^1.5.0",
+		"rehype-highlight": "^7.0.2",
+		"remark-gfm": "^4.0.1",
+		"shadcn-prose": "^1.0.9",
+		"tailwind-merge": "^3.3.1"
 	},
 	"devDependencies": {
 		"@cloudflare/next-on-pages": "^1.13.12",
