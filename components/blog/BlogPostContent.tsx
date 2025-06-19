@@ -2,15 +2,12 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Post } from "@/types/post";
 import { Prose } from "@/components/ui/prose";
-import { cn } from "@/lib/utils";
 import ReadingProgress from "./ReadingProgress";
-import TableOfContents from "./TableOfContents";
 import BackToTop from "./BackToTop";
 import {
-  CalendarIcon,
-  ClockIcon,
   UserIcon,
   ArrowLeftIcon,
   ShareIcon,
@@ -91,36 +88,53 @@ export default function BlogPostContent({
 
       {/* Hero Section */}
       <div className="relative">
-        {post.coverImage && (
-          <div className="relative h-96 overflow-hidden">
-            <img
-              src={post.coverImage}
-              alt={post.title}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-          </div>
-        )}
-
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div
-            className={cn(
-              "relative",
-              post.coverImage ? "-mt-32 mb-8" : "pt-12 pb-8"
-            )}
-          >
-            <div
-              className={cn(
-                "bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8 sm:p-12",
-                post.coverImage &&
-                  "backdrop-blur-sm bg-white/95 dark:bg-slate-900/95"
-              )}
-            >
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-8">
+          <div className="relative">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8 sm:p-12">
               {/* Article Header */}
               <header className="mb-8">
+                {/* Title */}
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 dark:text-slate-100 leading-tight mb-6">
+                  {post.title}
+                </h1>
+
+                {/* Cover Image */}
+                {post.coverImage && (
+                  <div className="mb-8 -mx-8 sm:-mx-12">
+                    <div className="relative aspect-video overflow-hidden rounded-xl">
+                      <Image
+                        src={post.coverImage}
+                        alt={post.title}
+                        fill
+                        className="object-cover"
+                        priority
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Author and Date */}
+                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 mb-6">
+                  {post.author && (
+                    <>
+                      <UserIcon className="w-4 h-4" />
+                      <span>{post.author}</span>
+                      <span>•</span>
+                    </>
+                  )}
+                  <time dateTime={post.date}>{formatDate(post.date)}</time>
+                </div>
+
+                {/* Summary */}
+                {post.summary && (
+                  <p className="text-xl text-slate-600 dark:text-slate-400 leading-relaxed mb-8">
+                    {post.summary}
+                  </p>
+                )}
+
                 {/* Tags */}
                 {post.tags && post.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-6">
+                  <div className="flex flex-wrap gap-2">
                     {post.tags.map((tag) => (
                       <span
                         key={tag}
@@ -131,40 +145,6 @@ export default function BlogPostContent({
                     ))}
                   </div>
                 )}
-
-                {/* Title */}
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 dark:text-slate-100 leading-tight mb-6">
-                  {post.title}
-                </h1>
-
-                {/* Summary */}
-                {post.summary && (
-                  <p className="text-xl text-slate-600 dark:text-slate-400 leading-relaxed mb-8">
-                    {post.summary}
-                  </p>
-                )}
-
-                {/* Meta Information */}
-                <div className="flex flex-wrap items-center gap-6 text-sm text-slate-600 dark:text-slate-400">
-                  <div className="flex items-center gap-2">
-                    <CalendarIcon className="w-4 h-4" />
-                    <time dateTime={post.date}>{formatDate(post.date)}</time>
-                  </div>
-
-                  {post.readingTime && (
-                    <div className="flex items-center gap-2">
-                      <ClockIcon className="w-4 h-4" />
-                      <span>{post.readingTime}</span>
-                    </div>
-                  )}
-
-                  {post.author && (
-                    <div className="flex items-center gap-2">
-                      <UserIcon className="w-4 h-4" />
-                      <span>by {post.author}</span>
-                    </div>
-                  )}
-                </div>
               </header>
 
               {/* Article Content */}
@@ -181,50 +161,7 @@ export default function BlogPostContent({
                     </Prose>
                   </div>
 
-                  {/* Sidebar for larger screens */}
-                  <div className="hidden lg:block lg:w-64 lg:flex-shrink-0">
-                    <div className="sticky top-24 space-y-6">
-                      {/* Table of Contents */}
-                      <TableOfContents />
-
-                      {/* Author Info */}
-                      {post.author && (
-                        <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-6">
-                          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                            About the Author
-                          </h3>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">
-                            {post.author}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Share Options */}
-                      <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-6">
-                        <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-4">
-                          Share this post
-                        </h3>
-                        <div className="space-y-3">
-                          <button
-                            onClick={handleShare}
-                            className="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                          >
-                            📱 Share via device
-                          </button>
-                          <button
-                            onClick={() =>
-                              navigator.clipboard.writeText(
-                                window.location.href
-                              )
-                            }
-                            className="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                          >
-                            🔗 Copy link
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  {/* Sidebar removed for cleaner layout */}
                 </div>
               </div>
 

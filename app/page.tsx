@@ -7,7 +7,8 @@ export default function Home() {
         <div className="text-center sm:text-left">
           <h1 className="text-4xl font-bold mb-4">Next.js MDX Blog</h1>
           <p className="text-gray-600 dark:text-gray-400 mb-8">
-            A sophisticated blog built with Next.js, MDX, and Smart Component Management
+            A sophisticated blog built with Next.js, MDX, and Smart Component
+            Management
           </p>
         </div>
 
