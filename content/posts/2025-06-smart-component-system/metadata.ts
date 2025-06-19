@@ -9,6 +9,8 @@ const metadata: PostMeta = {
   tags: ["Components", "Architecture", "Smart System", "Automation"],
   author: "Tech Lead",
   published: true,
+  coverImage: "/images/posts/2025-06-smart-component-system.webp",
+  readingTime: "5 min read",
 };
 
 export default metadata;
