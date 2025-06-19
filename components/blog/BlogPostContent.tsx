@@ -101,12 +101,12 @@ export default function BlogPostContent({
                 {/* Cover Image */}
                 {post.coverImage && (
                   <div className="mb-8 -mx-8 sm:-mx-12">
-                    <div className="relative aspect-video overflow-hidden rounded-xl">
+                    <div className="relative h-64 sm:h-80 lg:h-96 overflow-hidden rounded-xl">
                       <Image
                         src={post.coverImage}
                         alt={post.title}
                         fill
-                        className="object-cover"
+                        className="object-contain"
                         priority
                       />
                     </div>
