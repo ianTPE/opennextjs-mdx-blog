@@ -36,8 +36,8 @@ const nextConfig: NextConfig = {
     // Enable MDX with Rust compiler for better performance
     mdxRs: true,
 
-    // Optimize CSS for production
-    optimizeCss: true,
+    // Disable CSS optimization for Cloudflare Pages compatibility
+    // optimizeCss: true,
 
     // Enable scroll restoration
     scrollRestoration: true,

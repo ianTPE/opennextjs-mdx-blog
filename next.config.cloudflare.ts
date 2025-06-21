@@ -8,13 +8,13 @@ import type { NextConfig } from "next";
 const cloudflareConfig: NextConfig = {
   // Enable static export for Cloudflare Pages
   output: "export",
-  
+
   // Output directory for static files
   distDir: "out",
-  
+
   // Add trailing slash for Cloudflare Pages compatibility
   trailingSlash: true,
-  
+
   // React strict mode
   reactStrictMode: true,
 
@@ -22,14 +22,14 @@ const cloudflareConfig: NextConfig = {
   images: {
     // Disable Next.js image optimization for static export
     unoptimized: true,
-    
+
     // Use custom loader for Cloudflare
     loader: "custom",
     loaderFile: "./lib/cloudflare-image-loader.js",
-    
+
     // Supported formats
     formats: ["image/webp", "image/avif"],
-    
+
     // No external domains for static export
     remotePatterns: [],
   },
@@ -38,10 +38,10 @@ const cloudflareConfig: NextConfig = {
   experimental: {
     // Enable MDX with Rust compiler
     mdxRs: true,
-    
-    // Optimize CSS
-    optimizeCss: true,
-    
+
+    // Disable CSS optimization for Cloudflare Pages compatibility
+    // optimizeCss: true,
+
     // Enable scroll restoration
     scrollRestoration: true,
   },
@@ -50,7 +50,7 @@ const cloudflareConfig: NextConfig = {
   compiler: {
     // Remove console.log in production
     removeConsole: process.env.NODE_ENV === "production",
-    
+
     // Enable styled-components if used
     styledComponents: true,
   },
