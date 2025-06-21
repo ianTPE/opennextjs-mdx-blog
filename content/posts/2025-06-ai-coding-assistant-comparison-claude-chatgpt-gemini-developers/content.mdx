@@ -277,24 +277,36 @@ const finalSolution = combineAndOptimize(solutions);
 
 ### 使用場景對照表
 
-```
-[場景雲圖]
-
-日常開發賞數：
-Claude:     ★★★★★
-ChatGPT:    ★★★★
-Gemini:     ★★★
-
-概念學習賞數：
-ChatGPT:    ★★★★★
-Claude:     ★★★★
-Gemini:     ★★★
-
-企業專案賞數：
-Gemini:     ★★★★★
-Claude:     ★★★★
-ChatGPT:    ★★★
-```
+<MultiDimensionChart
+  title="場景雲圖"
+  subtitle="不同使用場景下的 AI 平台表現對比"
+  dimensions={[
+    {
+      dimension: "日常開發",
+      rankings: [
+        { name: "Claude", score: 5, color: "#3B82F6" },
+        { name: "ChatGPT", score: 4, color: "#10B981" },
+        { name: "Gemini", score: 3, color: "#F59E0B" },
+      ],
+    },
+    {
+      dimension: "概念學習",
+      rankings: [
+        { name: "ChatGPT", score: 5, color: "#10B981" },
+        { name: "Claude", score: 4, color: "#3B82F6" },
+        { name: "Gemini", score: 3, color: "#F59E0B" },
+      ],
+    },
+    {
+      dimension: "企業專案",
+      rankings: [
+        { name: "Gemini", score: 5, color: "#F59E0B" },
+        { name: "Claude", score: 4, color: "#3B82F6" },
+        { name: "ChatGPT", score: 3, color: "#10B981" },
+      ],
+    },
+  ]}
+/>
 
 | 場景           | 最佳選擇 | 次佳選擇 | 理由                                |
 | -------------- | -------- | -------- | ----------------------------------- |
@@ -387,33 +399,48 @@ ChatGPT:    ★★★
 
 ### 頂級平台多維度能力對比
 
-```
-[多維度能力雲圖]
-
-技術深度：
-Gemini:    ★★★★★
-Claude:    ★★★★★
-ChatGPT:   ★★★★
-DeepSeek:  ★★★
-
-實用性：
-Claude:    ★★★★★
-ChatGPT:   ★★★★
-DeepSeek:  ★★★★
-Gemini:    ★★★
-
-安全性：
-Gemini:    ★★★★★
-Claude:    ★★★★
-ChatGPT:   ★★★★
-DeepSeek:  ★★★
-
-創新性：
-Claude:    ★★★★★
-ChatGPT:   ★★★★★
-Gemini:    ★★★★
-DeepSeek:  ★★★
-```
+<MultiDimensionChart
+  title="多維度能力雲圖"
+  subtitle="四大 AI 平台核心能力全方位對比"
+  dimensions={[
+    {
+      dimension: "技術深度",
+      rankings: [
+        { name: "Gemini", score: 5, color: "#F59E0B" },
+        { name: "Claude", score: 5, color: "#3B82F6" },
+        { name: "ChatGPT", score: 4, color: "#10B981" },
+        { name: "DeepSeek", score: 3, color: "#8B5CF6" },
+      ],
+    },
+    {
+      dimension: "實用性",
+      rankings: [
+        { name: "Claude", score: 5, color: "#3B82F6" },
+        { name: "ChatGPT", score: 4, color: "#10B981" },
+        { name: "DeepSeek", score: 4, color: "#8B5CF6" },
+        { name: "Gemini", score: 3, color: "#F59E0B" },
+      ],
+    },
+    {
+      dimension: "安全性",
+      rankings: [
+        { name: "Gemini", score: 5, color: "#F59E0B" },
+        { name: "Claude", score: 4, color: "#3B82F6" },
+        { name: "ChatGPT", score: 4, color: "#10B981" },
+        { name: "DeepSeek", score: 3, color: "#8B5CF6" },
+      ],
+    },
+    {
+      dimension: "創新性",
+      rankings: [
+        { name: "Claude", score: 5, color: "#3B82F6" },
+        { name: "ChatGPT", score: 5, color: "#10B981" },
+        { name: "Gemini", score: 4, color: "#F59E0B" },
+        { name: "DeepSeek", score: 3, color: "#8B5CF6" },
+      ],
+    },
+  ]}
+/>
 
 - **Gemini** 在技術深度和安全性方面得分最高，但在實用性和創新性方面相對較弱
 - **千問** 在結構性方面表現不錯，但整體能力還有提升空間
