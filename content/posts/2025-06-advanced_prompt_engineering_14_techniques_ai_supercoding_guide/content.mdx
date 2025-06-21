@@ -1,0 +1,572 @@
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { CodeBlock } from '@/components/code-block'
+
+<Alert className="mb-6">
+  <AlertDescription>
+    一篇關於軟體工程提示技巧的新論文發表了。內容充滿豐富的創意！以下是論文的標題：
+  </AlertDescription>
+</Alert>
+
+<img 
+  src="/images/2025-06-advanced_prompt_engineering_14_techniques_ai_supercoding_guide/paper-title.webp"
+  alt="Advanced Prompt Engineering Techniques Paper Title"
+  width="800"
+  height="450"
+  className="mb-6 rounded-lg"
+/>
+
+## 🎯 重要警告：沒有萬能的提示技術
+
+<Alert variant="warning" className="mb-6">
+  <AlertDescription>
+    <strong>批判性思考</strong>：每種提示技術都有其特定的適用場景。簡單的性能比較往往誤導實際應用。關鍵在於<strong>任務匹配</strong>，而非追求「最佳」技術。
+  </AlertDescription>
+</Alert>
+
+根據最新研究顯示，**僅僅改變提示方式就能顯著影響AI表現**，但這並不意味著存在一個「最佳」解決方案。
+
+<Card className="mb-6">
+  <CardHeader>
+    <CardTitle>三個關鍵認知</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <ol className="space-y-2">
+      <li><strong>情境決定一切</strong>：同一技術在不同任務上表現差異巨大，ES-KNN在克隆檢測優秀，但在簡單問答中可能過度複雜</li>
+      <li><strong>成本效益權衡</strong>：複雜技術（如ToT）雖然在特定任務表現突出，但token成本可能增加200%，不適合預算有限的專案</li>
+      <li><strong>模型相依性</strong>：某些技術在特定模型上效果更佳，如Role Prompting在OpenAI o3-mini上表現優異</li>
+    </ol>
+  </CardContent>
+</Card>
+
+---
+
+## 🔧 14種提示技術：按使用場景分類
+
+<Tabs defaultValue="context-driven" className="w-full">
+  <TabsList className="grid w-full grid-cols-3">
+    <TabsTrigger value="context-driven">情境驅動型</TabsTrigger>
+    <TabsTrigger value="logic-reasoning">邏輯推理型</TabsTrigger>
+    <TabsTrigger value="efficiency-focused">效率優先型</TabsTrigger>
+  </TabsList>
+
+  <TabsContent value="context-driven">
+    ## 🔍 情境驅動型技術
+    
+    **適用場景**：需要大量上下文或範例的任務
+
+    ### 1. **Exemplar Selection KNN (ES-KNN)**
+    
+    **核心原理**：使用k近鄰算法找出語意最相似的範例
+    
+    **最佳應用場景**：
+    - ✅ 克隆檢測（需要相似代碼範例）
+    - ✅ 代碼翻譯（需要對應語言範例）
+    - ✅ API使用生成（需要相似用法範例）
+
+    <CodeBlock language="python">
+    {`# ES-KNN 實戰範例：克隆檢測
+def build_clone_detection_prompt(target_code):
+    # 找出語意相似的範例
+    similar_examples = find_similar_code_examples(target_code, k=3)
+    
+    prompt = f"""
+基於這些相似的代碼範例：
+{format_examples(similar_examples)}
+
+分析以下代碼是否為克隆：
+{target_code}
+
+重點關注：變數命名、邏輯結構、功能語意
+"""
+    return prompt`}
+    </CodeBlock>
+
+    **權衡考量**：
+    - ✅ 提供高度相關的上下文
+    - ❌ Token使用量顯著增加
+    - ❌ 需要事先建立範例資料庫
+
+    ### 2. **Few-Shot Learning (FSL)**
+    
+    **核心原理**：提供少量精選範例引導模型理解任務
+
+    **最佳應用場景**：
+    - ✅ 代碼風格統一（需要風格範例）
+    - ✅ 特定領域代碼生成（需要領域範例）
+    - ✅ 錯誤修正（需要修正範例）
+
+    <CodeBlock language="python">
+    {`# FSL 實戰範例：代碼風格統一
+prompt = """
+以下是符合團隊規範的代碼範例：
+
+範例1：
+# 錯誤寫法
+def getUserData(userId):
+    return db.get(userId)
+
+# 正確寫法  
+def get_user_data(user_id: str) -> dict:
+    return database.fetch_user(user_id)
+
+範例2：
+# 錯誤寫法
+if len(items) > 0:
+    process(items)
+
+# 正確寫法
+if items:
+    process_items(items)
+
+現在請修正以下代碼以符合團隊規範：
+{target_code}
+"""`}
+    </CodeBlock>
+
+  </TabsContent>
+
+  <TabsContent value="logic-reasoning">
+    ## 🧠 邏輯推理型技術
+    
+    **適用場景**：需要複雜推理或多步驟分析的任務
+
+    ### 3. **Tree of Thought (ToT)**
+    
+    **核心原理**：探索多個解決路徑，允許回溯和評估
+
+    **最佳應用場景**：
+    - ✅ 複雜演算法設計（需要探索多種方法）
+    - ✅ 系統架構設計（需要比較不同方案）
+    - ✅ 複雜bug除錯（需要排除多種可能）
+
+    <CodeBlock language="python">
+    {`# ToT 實戰範例：複雜演算法設計
+prompt = """
+任務：設計一個高效的圖形最短路徑演算法
+
+分支探索：
+
+分支 1：Dijkstra方法
+- 適用：非負權重，稠密圖
+- 時間複雜度：O(V²)
+- 評估：適合小規模圖
+
+分支 2：A*搜尋
+- 適用：有啟發式函數，目標明確
+- 時間複雜度：O(b^d)
+- 評估：適合遊戲AI路徑規劃
+
+分支 3：Floyd-Warshall
+- 適用：所有點對之間最短路徑
+- 時間複雜度：O(V³)
+- 評估：適合小圖，需要所有路徑
+
+[基於需求選擇最適合的分支]
+實際需求：{specific_requirements}
+推薦方案：[選擇並說明原因]
+"""'}`}
+    </CodeBlock>
+
+    **權衡考量**：
+    - ✅ 適合複雜問題解決
+    - ❌ Token消耗極高
+    - ❌ 響應時間較長
+
+    ### 4. **Structured Chain-of-Thought (SCoT)**
+    
+    **核心原理**：將程式結構（序列、分支、循環）融入推理過程
+
+    **最佳應用場景**：
+    - ✅ 複雜程式邏輯生成
+    - ✅ 演算法實作
+    - ✅ 程式流程分析
+
+    <CodeBlock language="python">
+    {`# SCoT 實戰範例：演算法實作
+prompt = """
+任務：實作快速排序演算法
+
+結構化思考：
+
+1. SEQUENCE Structure（順序結構）：
+   - 選擇基準元素
+   - 分割陣列
+   - 遞歸排序子陣列
+
+2. BRANCH Structure（分支結構）：
+   - IF 陣列長度 <= 1: 直接返回
+   - ELSE: 進行分割和遞歸
+
+3. LOOP Structure（循環結構）：
+   - FOR 每個元素 in 陣列:
+     - IF 元素 < 基準: 放入左子陣列
+     - ELSE: 放入右子陣列
+
+最終實作：
+[基於以上結構生成代碼]
+"""'}`}
+    </CodeBlock>
+
+  </TabsContent>
+
+  <TabsContent value="efficiency-focused">
+    ## ⚡ 效率優先型技術
+    
+    **適用場景**：需要平衡效果與成本的日常開發任務
+
+    ### 5. **Role Prompting (RP)**
+    
+    **核心原理**：賦予AI特定專業角色身份
+
+    **最佳應用場景**：
+    - ✅ 代碼審查（專業審查員角色）
+    - ✅ 架構設計（資深架構師角色）
+    - ✅ 技術文檔撰寫（技術寫作專家角色）
+    - ✅ 預算受限的專案
+
+    <CodeBlock language="python">
+    {`# RP 實戰範例：代碼審查
+security_reviewer_prompt = """
+你是一位擁有15年經驗的資安專家，專精於：
+- OWASP Top 10 漏洞檢測
+- 代碼安全最佳實踐
+- 企業級安全架構
+
+請以安全專家的角度審查以下代碼：
+{code}
+
+重點檢查：
+1. 輸入驗證
+2. SQL注入風險
+3. XSS漏洞
+4. 權限控制
+5. 敏感資料處理
+"""
+
+performance_expert_prompt = """
+你是效能優化專家，擅長：
+- 演算法複雜度分析
+- 記憶體使用優化
+- 資料庫查詢優化
+
+請分析以下代碼的效能問題：
+{code}
+"""'}`}
+    </CodeBlock>
+
+    **權衡考量**：
+    - ✅ Token使用量最低
+    - ✅ 響應速度快
+    - ✅ 在某些模型上效果出色
+    - ❌ 對複雜邏輯任務可能不足
+
+    ### 6. **Zero-shot Chain-of-Thought**
+    
+    **核心原理**：簡單添加推理引導詞
+
+    **最佳應用場景**：
+    - ✅ 快速原型開發
+    - ✅ 簡單問題解決
+    - ✅ 教學和學習場景
+
+    <CodeBlock language="python">
+    {`# Zero-shot CoT 實戰範例
+simple_prompt = """
+{task_description}
+
+讓我們一步步思考這個問題：
+"""
+
+# 2025年優化版本
+enhanced_prompt = """
+{task_description}
+
+深呼吸，讓我們有條理地分析：
+1. 問題分解
+2. 解決方案設計
+3. 實作步驟
+"""'}`}
+    </CodeBlock>
+
+  </TabsContent>
+</Tabs>
+
+---
+
+## 💡 實際應用：場景驅動的技術選擇
+
+<Card className="mb-6">
+  <CardHeader>
+    <CardTitle>場景1：急需修復的生產環境Bug</CardTitle>
+    <CardDescription>時間緊迫，需要快速有效的解決方案</CardDescription>
+  </CardHeader>
+  <CardContent>
+    <p className="mb-4"><strong>推薦技術</strong>：Role Prompting + Zero-shot CoT</p>
+    <p className="mb-2"><strong>原因</strong>：</p>
+    <ul className="list-disc pl-6 space-y-1">
+      <li>Role Prompting提供專業除錯視角</li>
+      <li>Zero-shot CoT確保系統性分析</li>
+      <li>兩者結合token消耗適中，響應快速</li>
+    </ul>
+    
+    <CodeBlock language="python">
+    {`urgent_debug_prompt = """
+你是一位經驗豐富的生產環境除錯專家，擅長快速定位關鍵問題。
+
+Bug描述：{bug_description}
+錯誤日誌：{error_logs}
+影響範圍：{impact_scope}
+
+讓我們系統性地分析：
+1. 根據錯誤日誌快速定位問題根源
+2. 評估最小風險的修復方案
+3. 提供臨時緩解措施（如果需要）
+"""'}`}
+    </CodeBlock>
+  </CardContent>
+</Card>
+
+<Card className="mb-6">
+  <CardHeader>
+    <CardTitle>場景2：新系統架構設計</CardTitle>
+    <CardDescription>時間充裕，需要深度思考和多方案比較</CardDescription>
+  </CardHeader>
+  <CardContent>
+    <p className="mb-4"><strong>推薦技術</strong>：Tree of Thought + ES-KNN</p>
+    <p className="mb-2"><strong>原因</strong>：</p>
+    <ul className="list-disc pl-6 space-y-1">
+      <li>ToT允許探索多種架構方案</li>
+      <li>ES-KNN提供相似系統的參考案例</li>
+      <li>時間充裕可承受較高的token成本</li>
+    </ul>
+    
+    <CodeBlock language="python">
+    {`architecture_design_prompt = """
+基於這些相似系統的架構案例：
+{similar_architecture_examples}
+
+設計微服務架構，探索多種方案：
+
+方案A：基於事件驅動架構
+- 優點：解耦性高，擴展性好
+- 缺點：複雜度高，除錯困難
+- 適用：高併發，數據一致性要求不嚴格
+
+方案B：分層架構 + API Gateway
+- 優點：結構清晰，易於理解
+- 缺點：可能出現瓶頸
+- 適用：團隊較小，業務邏輯清晰
+
+方案C：混合架構
+- 核心服務用分層架構
+- 輔助服務用事件驅動
+- 平衡複雜度與彈性
+
+[評估各方案並推薦最適合的選擇]
+"""'}`}
+    </CodeBlock>
+  </CardContent>
+</Card>
+
+---
+
+## 📊 技術選擇決策框架
+
+<Table>
+  <TableHeader>
+    <TableRow>
+      <TableHead>任務類型</TableHead>
+      <TableHead>時間限制</TableHead>
+      <TableHead>預算考量</TableHead>
+      <TableHead>推薦技術</TableHead>
+      <TableHead>備註</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    <TableRow>
+      <TableCell>代碼審查</TableCell>
+      <TableCell>適中</TableCell>
+      <TableCell>受限</TableCell>
+      <TableCell><Badge>Role Prompting</Badge></TableCell>
+      <TableCell>專業角色效果佳，成本低</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>複雜演算法設計</TableCell>
+      <TableCell>充裕</TableCell>
+      <TableCell>寬鬆</TableCell>
+      <TableCell><Badge>Tree of Thought</Badge></TableCell>
+      <TableCell>需要探索多種方案</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>代碼翻譯</TableCell>
+      <TableCell>適中</TableCell>
+      <TableCell>適中</TableCell>
+      <TableCell><Badge>ES-KNN</Badge></TableCell>
+      <TableCell>相似範例提供重要上下文</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>快速原型</TableCell>
+      <TableCell>緊迫</TableCell>
+      <TableCell>受限</TableCell>
+      <TableCell><Badge>Zero-shot CoT</Badge></TableCell>
+      <TableCell>簡單有效，響應快速</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>系統架構設計</TableCell>
+      <TableCell>充裕</TableCell>
+      <TableCell>寬鬆</TableCell>
+      <TableCell><Badge>ToT + ES-KNN</Badge></TableCell>
+      <TableCell>組合使用效果更佳</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>bug除錯</TableCell>
+      <TableCell>緊迫</TableCell>
+      <TableCell>適中</TableCell>
+      <TableCell><Badge>RP + Zero-shot CoT</Badge></TableCell>
+      <TableCell>專業性與效率的平衡</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
+
+---
+
+## 🚨 常見誤區與避免方法
+
+<Alert variant="destructive" className="mb-4">
+  <AlertDescription>
+    <strong>誤區1：追求「最佳」技術</strong><br/>
+    沒有萬能的提示技術。ES-KNN在某些任務優秀，但在簡單問答中可能過度複雜且昂貴。
+  </AlertDescription>
+</Alert>
+
+<Alert variant="destructive" className="mb-4">
+  <AlertDescription>
+    <strong>誤區2：忽略成本考量</strong><br/>
+    Tree of Thought雖然在複雜問題上表現出色，但token消耗可能是基礎提示的3-5倍。
+  </AlertDescription>
+</Alert>
+
+<Alert variant="destructive" className="mb-4">
+  <AlertDescription>
+    <strong>誤區3：模型無關化假設</strong><br/>
+    不同技術在不同模型上的表現差異巨大。Role Prompting在OpenAI o3-mini上效果突出，但在其他模型上可能一般。
+  </AlertDescription>
+</Alert>
+
+---
+
+## 🛠️ 建立你的提示技術工具箱
+
+### 1. **技術評估框架**
+
+<CodeBlock language="python">
+{`class PromptTechniqueEvaluator:
+    def __init__(self):
+        self.criteria = {
+            'task_complexity': 0,    # 1-10
+            'time_constraint': 0,    # 1-10 (10=very urgent)
+            'budget_limit': 0,       # 1-10 (10=very limited)
+            'accuracy_requirement': 0 # 1-10 (10=mission critical)
+        }
+    
+    def recommend_technique(self, **criteria):
+        self.criteria.update(criteria)
+        
+        # 高精度要求且預算充足
+        if (self.criteria['accuracy_requirement'] >= 8 and 
+            self.criteria['budget_limit'] <= 5):
+            return "ES-KNN or USC"
+        
+        # 複雜任務且時間充裕
+        if (self.criteria['task_complexity'] >= 7 and 
+            self.criteria['time_constraint'] <= 5):
+            return "Tree of Thought"
+        
+        # 時間緊迫或預算受限
+        if (self.criteria['time_constraint'] >= 7 or 
+            self.criteria['budget_limit'] >= 7):
+            return "Role Prompting + Zero-shot CoT"
+        
+        # 默認選擇
+        return "Role Prompting"
+
+# 使用範例
+evaluator = PromptTechniqueEvaluator()
+recommendation = evaluator.recommend_technique(
+    task_complexity=8,
+    time_constraint=3,
+    budget_limit=4,
+    accuracy_requirement=9
+)
+print(f"推薦技術: {recommendation}")`}
+</CodeBlock>
+
+### 2. **A/B測試框架**
+
+<CodeBlock language="python">
+{`async def compare_prompt_techniques(task, technique_a, technique_b, n=50):
+    """
+    比較兩種提示技術在特定任務上的表現
+    重點：不是找出「最佳」，而是找出「最適合」
+    """
+    results = {
+        'technique_a': {'quality': [], 'tokens': [], 'time': []},
+        'technique_b': {'quality': [], 'tokens': [], 'time': []}
+    }
+    
+    for i in range(n):
+        # 測試技術A
+        start_time = time.time()
+        result_a = await llm.generate(technique_a.format(task))
+        time_a = time.time() - start_time
+        
+        results['technique_a']['quality'].append(evaluate_quality(result_a))
+        results['technique_a']['tokens'].append(count_tokens(result_a))
+        results['technique_a']['time'].append(time_a)
+        
+        # 測試技術B
+        start_time = time.time()
+        result_b = await llm.generate(technique_b.format(task))
+        time_b = time.time() - start_time
+        
+        results['technique_b']['quality'].append(evaluate_quality(result_b))
+        results['technique_b']['tokens'].append(count_tokens(result_b))
+        results['technique_b']['time'].append(time_b)
+    
+    # 綜合評估（非簡單排名）
+    analysis = {
+        'quality_comparison': analyze_quality_difference(results),
+        'cost_efficiency': analyze_cost_effectiveness(results),
+        'speed_comparison': analyze_response_time(results),
+        'recommendation': generate_contextual_recommendation(results, task)
+    }
+    
+    return analysis`}
+</CodeBlock>
+
+---
+
+## 🎯 結語：實用主義的提示工程
+
+提示工程的核心不在於尋找「最佳」技術，而在於**為特定情境找到最合適的解決方案**。
+
+### 關鍵原則：
+
+1. **任務先行**：先理解任務特性，再選擇技術
+2. **成本意識**：考慮token消耗、時間成本和維護複雜度
+3. **迭代改進**：持續測試和優化，而非一次性選擇
+4. **情境感知**：相同任務在不同情境下可能需要不同技術
+
+<Alert variant="default" className="mt-6">
+  <AlertDescription>
+    <strong>立即行動</strong>：選擇你目前正在進行的一個具體任務，使用本文的決策框架選擇適合的提示技術，實際測試其效果。記住，適合的才是最好的！
+  </AlertDescription>
+</Alert>
+
+---
+
+*本文基於 [arXiv:2506.05614](https://arxiv.org/abs/2506.05614) 整理，但加入了批判性思考和實用導向的觀點*

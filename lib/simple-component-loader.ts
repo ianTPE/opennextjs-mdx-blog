@@ -1,10 +1,52 @@
 import { cache } from "react";
 import { ComponentLoadResult } from "../types/post";
 import Alert from "../components/mdx/global-components/Alert";
+import { AlertDescription } from "../components/ui/alert";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table";
+import { Badge } from "../components/ui/badge";
+import { CodeBlock } from "../components/code-block";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "../components/ui/tabs";
 
 // Define global components directly
 const globalComponents = {
   Alert,
+  AlertDescription,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  Badge,
+  CodeBlock,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
 };
 
 // 🤖 This mapping is automatically maintained by smart-prebuild
@@ -29,7 +71,24 @@ const componentMappings: Record<string, () => Promise<unknown>> = {
   '2025-05-sfbt-practical-guide-youth-counseling-techniques': () => import('../content/posts/2025-05-sfbt-practical-guide-youth-counseling-techniques/components/index'),
   '2025-05-typescript-best-practices': () => import('../content/posts/2025-05-typescript-best-practices/components/index'),
   '2025-05-windsurf-swe1-model-family': () => import('../content/posts/2025-05-windsurf-swe1-model-family/components/index'),
+  '2025-06-ai-coding-assistant-comparison-claude-chatgpt-gemini-developers': () => import('../content/posts/2025-06-ai-coding-assistant-comparison-claude-chatgpt-gemini-developers/components/index'),
+  '2025-06-chasing-ghosts-tailwind-typography-debugging-nightmares': () => import('../content/posts/2025-06-chasing-ghosts-tailwind-typography-debugging-nightmares/components/index'),
+  '2025-06-from-zero-to-one-build-chayu-time-bubble-tea-booking-system-tech-guide': () => import('../content/posts/2025-06-from-zero-to-one-build-chayu-time-bubble-tea-booking-system-tech-guide/components/index'),
+  '2025-06-from-zero-to-one-build-chayu-time-liff-tea-booking-system-complete-tech-guide': () => import('../content/posts/2025-06-from-zero-to-one-build-chayu-time-liff-tea-booking-system-complete-tech-guide/components/index'),
+  '2025-06-line-liff-lowcode-ultimate-guide': () => import('../content/posts/2025-06-line-liff-lowcode-ultimate-guide/components/index'),
+  '2025-06-LINE_LIFF_Low_Code_Platform_Business_Guide': () => import('../content/posts/2025-06-LINE_LIFF_Low_Code_Platform_Business_Guide/components/index'),
+  '2025-06-Low-Code-No-Code-PRD-Complete-Guide-Part2': () => import('../content/posts/2025-06-Low-Code-No-Code-PRD-Complete-Guide-Part2/components/index'),
+  '2025-06-mdx-blog-frontend-backend-separation-nextjs-to-s3-guide': () => import('../content/posts/2025-06-mdx-blog-frontend-backend-separation-nextjs-to-s3-guide/components/index'),
+  '2025-06-nextjs-mdx-universal-component-loader-system': () => import('../content/posts/2025-06-nextjs-mdx-universal-component-loader-system/components/index'),
+  '2025-06-Parser_Prompting_Symbol_System_Full_Reference': () => import('../content/posts/2025-06-Parser_Prompting_Symbol_System_Full_Reference/components/index'),
+  '2025-06-refactored-ai-coding-guide': () => import('../content/posts/2025-06-refactored-ai-coding-guide/components/index'),
+  '2025-06-shadcn-prose-migration-guide': () => import('../content/posts/2025-06-shadcn-prose-migration-guide/components/index'),
   '2025-06-smart-component-system': () => import('../content/posts/2025-06-smart-component-system/components/index'),
+  '2025-06-supabase-tea-booking-guide': () => import('../content/posts/2025-06-supabase-tea-booking-guide/components/index'),
+  '2025-06-taiwan-software-engineer-job-market-analysis': () => import('../content/posts/2025-06-taiwan-software-engineer-job-market-analysis/components/index'),
+  '2025-06-vibe-coding-framework-guide-from-nextjs-experience': () => import('../content/posts/2025-06-vibe-coding-framework-guide-from-nextjs-experience/components/index'),
+  '2025-06-web-deployment-platforms-2025': () => import('../content/posts/2025-06-web-deployment-platforms-2025/components/index'),
+  '2025-06-xano-tea-booking-backend': () => import('../content/posts/2025-06-xano-tea-booking-backend/components/index'),
 };
 
 // Smart loading with graceful fallback
