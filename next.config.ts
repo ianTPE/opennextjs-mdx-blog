@@ -87,11 +87,7 @@ const cloudflareConfig: NextConfig = {
   // Redirects for SEO and compatibility
   async redirects() {
     return [
-      {
-        source: "/blog/:slug*",
-        destination: "/blog/:slug*/",
-        permanent: true,
-      },
+      // No redirects needed for now
     ];
   },
 
