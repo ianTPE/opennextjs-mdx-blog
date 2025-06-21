@@ -1,39 +1,42 @@
-// import { setupDevPlatform } from "@cloudflare/next-on-pages/next-dev";
-
-// Here we use the @cloudflare/next-on-pages next-dev module to allow us to
-// use bindings during local development (when running the application with
-// `next dev`). This function is only necessary during development and
-// has no impact outside of that. For more information see:
-// https://github.com/cloudflare/next-on-pages/blob/main/internal-packages/next-dev/README.md
-// if (process.env.NODE_ENV === "development") {
-//   setupDevPlatform().catch(console.error);
-// }
+/**
+ * Next.js configuration optimized for Cloudflare Pages static export
+ * Use this configuration when deploying to Cloudflare Pages
+ */
 
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  // Enable React strict mode for better development experience
+const cloudflareConfig: NextConfig = {
+  // Enable static export for Cloudflare Pages
+  output: "export",
+
+  // Output directory for static files
+  distDir: "out",
+
+  // Add trailing slash for Cloudflare Pages compatibility
+  trailingSlash: true,
+
+  // React strict mode
   reactStrictMode: true,
 
-  // Image optimization configuration for Cloudflare Pages
+  // Image configuration for static export
   images: {
-    // Disable Next.js built-in image optimization for static export
+    // Disable Next.js image optimization for static export
     unoptimized: true,
 
-    // Use custom image loader for Cloudflare
+    // Use custom loader for Cloudflare
     loader: "custom",
     loaderFile: "./lib/cloudflare-image-loader.js",
 
-    // Supported image formats (Cloudflare supports these)
+    // Supported formats
     formats: ["image/webp", "image/avif"],
 
-    // Remove external domains for static export
+    // No external domains for static export
     remotePatterns: [],
   },
 
   // Experimental features
   experimental: {
-    // Enable MDX with Rust compiler for better performance
+    // Enable MDX with Rust compiler
     mdxRs: true,
 
     // Disable CSS optimization for Cloudflare Pages compatibility
@@ -47,13 +50,73 @@ const nextConfig: NextConfig = {
   compiler: {
     // Remove console.log in production
     removeConsole: process.env.NODE_ENV === "production",
+
+    // Enable styled-components if used
+    styledComponents: true,
   },
 
-  // Environment variables available at build time
+  // Build-time environment variables
   env: {
-    SITE_URL: process.env.SITE_URL || "https://localhost:3000",
+    SITE_URL: process.env.SITE_URL || "https://citrine.top",
     SITE_NAME: process.env.SITE_NAME || "Citrine.top",
+    BUILD_TIME: new Date().toISOString(),
+  },
+
+  // Webpack optimizations for memory usage
+  webpack: (config, { dev, isServer }) => {
+    // Memory optimization for Cloudflare Pages build limits
+    if (!dev && !isServer) {
+      config.optimization.splitChunks = {
+        chunks: "all",
+        cacheGroups: {
+          default: false,
+          vendors: false,
+          vendor: {
+            chunks: "all",
+            test: /node_modules/,
+            name: "vendor",
+            enforce: true,
+          },
+        },
+      };
+    }
+
+    return config;
+  },
+
+  // Redirects for SEO and compatibility
+  async redirects() {
+    return [
+      {
+        source: "/blog/:slug*",
+        destination: "/blog/:slug*/",
+        permanent: true,
+      },
+    ];
+  },
+
+  // Headers for security and performance
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "X-DNS-Prefetch-Control",
+            value: "on",
+          },
+          {
+            key: "X-Frame-Options",
+            value: "SAMEORIGIN",
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+        ],
+      },
+    ];
   },
 };
 
-export default nextConfig;
+export default cloudflareConfig;

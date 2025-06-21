@@ -7,7 +7,7 @@ export interface OGImageConfig {
   title: string;
   description: string;
   url?: string;
-  type?: 'website' | 'article';
+  type?: "website" | "article";
   image?: string;
   alt?: string;
   publishedTime?: string;
@@ -28,18 +28,23 @@ export function generateOGMetadata(config: OGImageConfig) {
     title,
     description,
     url = BASE_URL,
-    type = 'website',
+    type = "website",
     image = DEFAULT_OG_IMAGE,
     alt = title,
     publishedTime,
     authors = ["Ian Chou"],
     tags = [],
-    twitterCreator = "@citrine_top"
+    twitterCreator = "@citrine_top",
   } = config;
 
   const metadata: any = {
     title,
     description,
+    icons: {
+      icon: "/favicon.ico",
+      shortcut: "/favicon.ico",
+      apple: "/favicon.ico",
+    },
     openGraph: {
       title,
       description,
@@ -66,13 +71,13 @@ export function generateOGMetadata(config: OGImageConfig) {
   };
 
   // Add article-specific metadata
-  if (type === 'article') {
+  if (type === "article") {
     if (publishedTime) {
       metadata.openGraph.publishedTime = publishedTime;
     }
     if (authors.length > 0) {
       metadata.openGraph.authors = authors;
-      metadata.authors = authors.map(name => ({ name }));
+      metadata.authors = authors.map((name) => ({ name }));
     }
     if (tags.length > 0) {
       metadata.openGraph.tags = tags;
@@ -96,10 +101,10 @@ export function getPostOGImage(coverImage?: string): string {
  */
 export function validateOGImageUrl(url: string): boolean {
   // Check if it's a relative path starting with /
-  if (url.startsWith('/')) {
+  if (url.startsWith("/")) {
     return true;
   }
-  
+
   // Check if it's a valid absolute URL
   try {
     new URL(url);
@@ -124,20 +129,22 @@ export function generateArticleStructuredData(config: {
   return {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": config.title,
-    "description": config.description,
-    "url": config.url,
-    "image": config.image.startsWith('/') ? `${BASE_URL}${config.image}` : config.image,
-    "datePublished": config.publishedTime,
-    "author": {
+    headline: config.title,
+    description: config.description,
+    url: config.url,
+    image: config.image.startsWith("/")
+      ? `${BASE_URL}${config.image}`
+      : config.image,
+    datePublished: config.publishedTime,
+    author: {
       "@type": "Person",
-      "name": config.author
+      name: config.author,
     },
-    "publisher": {
+    publisher: {
       "@type": "Organization",
-      "name": SITE_NAME,
-      "url": BASE_URL
+      name: SITE_NAME,
+      url: BASE_URL,
     },
-    "keywords": config.tags.join(", ")
+    keywords: config.tags.join(", "),
   };
 }
