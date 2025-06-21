@@ -65,13 +65,32 @@
 
 基於這次深度測試，我整理了一個實用的 AI 選擇決策框架：
 
-**AI 選擇決策樹：**
-
-技術問題
-└─ 學習新技術 → Claude 和 ChatGPT 的深度分析
-└─ 快速開發 → Claude 的直接解決方案
-└─ 架構設計 → 結合多平台優勢
-└─ 緊急修 Bug → Claude 的實用性
+<AISelectionFlow
+  title="AI 選擇決策樹"
+  subtitle="根據不同技術場景選擇最適合的 AI 編程助手"
+  steps={[
+    {
+      condition: "學習新技術",
+      recommendation: "Claude + ChatGPT",
+      color: "#3B82F6",
+    },
+    {
+      condition: "快速開發",
+      recommendation: "Claude",
+      color: "#10B981",
+    },
+    {
+      condition: "架構設計",
+      recommendation: "多平台結合",
+      color: "#F59E0B",
+    },
+    {
+      condition: "緊急修 Bug",
+      recommendation: "Claude",
+      color: "#EF4444",
+    },
+  ]}
+/>
 
 **具體選擇策略：**
 

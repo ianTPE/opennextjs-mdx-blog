@@ -20,5 +20,7 @@ export { default as TestResultsTable } from "./TestResultsTable";
 export { default as UseCaseChart } from "./UseCaseChart";
 export { default as AIRatingChart } from "./AIRatingChart";
 export { default as AIScoreTable } from "./AIScoreTable";
+export { default as AISelectionFlow } from "./AISelectionFlow";
+export { default as DecisionTree } from "./DecisionTree";
 export { default as MultiDimensionChart } from "./MultiDimensionChart";
 export { default as ResponsiveTable } from "./ResponsiveTable";
