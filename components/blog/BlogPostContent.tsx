@@ -117,7 +117,34 @@ export default function BlogPostContent({
                 <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 mb-6">
                   {post.author && (
                     <>
-                      <UserIcon className="w-4 h-4" />
+                      {(() => {
+                        const getAuthorAvatar = (author: string) => {
+                          switch (author) {
+                            case "Ian Chou":
+                              return "/images/authors/ian.webp";
+                            case "Arkiiz":
+                            case "庭宇":
+                              return "/images/authors/Arkiiz.webp";
+                            default:
+                              return null;
+                          }
+                        };
+
+                        const avatarSrc = getAuthorAvatar(post.author);
+
+                        return avatarSrc ? (
+                          <div className="w-5 h-5 relative rounded-full overflow-hidden">
+                            <Image
+                              src={avatarSrc}
+                              alt={post.author}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <UserIcon className="w-4 h-4" />
+                        );
+                      })()}
                       <span>{post.author}</span>
                       <span>•</span>
                     </>
