@@ -1,9 +1,22 @@
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import { CodeBlock } from '@/components/code-block'
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { CodeBlock } from "@/components/code-block";
 
 <Alert className="mb-6">
   <AlertDescription>
@@ -11,7 +24,7 @@ import { CodeBlock } from '@/components/code-block'
   </AlertDescription>
 </Alert>
 
-<img 
+<img
   src="/images/2025-06-advanced_prompt_engineering_14_techniques_ai_supercoding_guide/paper-title.webp"
   alt="Advanced Prompt Engineering Techniques Paper Title"
   width="800"
@@ -23,11 +36,13 @@ import { CodeBlock } from '@/components/code-block'
 
 <Alert variant="warning" className="mb-6">
   <AlertDescription>
-    <strong>批判性思考</strong>：每種提示技術都有其特定的適用場景。簡單的性能比較往往誤導實際應用。關鍵在於<strong>任務匹配</strong>，而非追求「最佳」技術。
+    <strong>批判性思考</strong>
+    ：每種提示技術都有其特定的適用場景。簡單的性能比較往往誤導實際應用。關鍵在於
+    <strong>任務匹配</strong>，而非追求「最佳」技術。
   </AlertDescription>
 </Alert>
 
-根據最新研究顯示，**僅僅改變提示方式就能顯著影響AI表現**，但這並不意味著存在一個「最佳」解決方案。
+根據最新研究顯示，**僅僅改變提示方式就能顯著影響 AI 表現**，但這並不意味著存在一個「最佳」解決方案。
 
 <Card className="mb-6">
   <CardHeader>
@@ -35,22 +50,32 @@ import { CodeBlock } from '@/components/code-block'
   </CardHeader>
   <CardContent>
     <ol className="space-y-2">
-      <li><strong>情境決定一切</strong>：同一技術在不同任務上表現差異巨大，ES-KNN在克隆檢測優秀，但在簡單問答中可能過度複雜</li>
-      <li><strong>成本效益權衡</strong>：複雜技術（如ToT）雖然在特定任務表現突出，但token成本可能增加200%，不適合預算有限的專案</li>
-      <li><strong>模型相依性</strong>：某些技術在特定模型上效果更佳，如Role Prompting在OpenAI o3-mini上表現優異</li>
+      <li>
+        <strong>情境決定一切</strong>
+        ：同一技術在不同任務上表現差異巨大，ES-KNN在克隆檢測優秀，但在簡單問答中可能過度複雜
+      </li>
+      <li>
+        <strong>成本效益權衡</strong>
+        ：複雜技術（如ToT）雖然在特定任務表現突出，但token成本可能增加200%，不適合預算有限的專案
+      </li>
+      <li>
+        <strong>模型相依性</strong>：某些技術在特定模型上效果更佳，如Role
+        Prompting在OpenAI o3-mini上表現優異
+      </li>
     </ol>
   </CardContent>
 </Card>
 
 ---
 
-## 🔧 14種提示技術：按使用場景分類
+## 🔧 14 種提示技術：按使用場景分類
 
 <Tabs defaultValue="context-driven" className="w-full">
-  <TabsList className="grid w-full grid-cols-3">
+  <TabsList className="grid w-full grid-cols-4">
     <TabsTrigger value="context-driven">情境驅動型</TabsTrigger>
     <TabsTrigger value="logic-reasoning">邏輯推理型</TabsTrigger>
     <TabsTrigger value="efficiency-focused">效率優先型</TabsTrigger>
+    <TabsTrigger value="advanced-techniques">進階技術型</TabsTrigger>
   </TabsList>
 
   <TabsContent value="context-driven">
@@ -59,9 +84,9 @@ import { CodeBlock } from '@/components/code-block'
     **適用場景**：需要大量上下文或範例的任務
 
     ### 1. **Exemplar Selection KNN (ES-KNN)**
-    
+
     **核心原理**：使用k近鄰算法找出語意最相似的範例
-    
+
     **最佳應用場景**：
     - ✅ 克隆檢測（需要相似代碼範例）
     - ✅ 代碼翻譯（需要對應語言範例）
@@ -69,11 +94,12 @@ import { CodeBlock } from '@/components/code-block'
 
     <CodeBlock language="python">
     {`# ES-KNN 實戰範例：克隆檢測
-def build_clone_detection_prompt(target_code):
-    # 找出語意相似的範例
-    similar_examples = find_similar_code_examples(target_code, k=3)
-    
+
+def build_clone_detection_prompt(target_code): # 找出語意相似的範例
+similar_examples = find_similar_code_examples(target_code, k=3)
+
     prompt = f"""
+
 基於這些相似的代碼範例：
 {format_examples(similar_examples)}
 
@@ -82,8 +108,9 @@ def build_clone_detection_prompt(target_code):
 
 重點關注：變數命名、邏輯結構、功能語意
 """
-    return prompt`}
-    </CodeBlock>
+return prompt`}
+
+</CodeBlock>
 
     **權衡考量**：
     - ✅ 提供高度相關的上下文
@@ -91,7 +118,7 @@ def build_clone_detection_prompt(target_code):
     - ❌ 需要事先建立範例資料庫
 
     ### 2. **Few-Shot Learning (FSL)**
-    
+
     **核心原理**：提供少量精選範例引導模型理解任務
 
     **最佳應用場景**：
@@ -101,31 +128,39 @@ def build_clone_detection_prompt(target_code):
 
     <CodeBlock language="python">
     {`# FSL 實戰範例：代碼風格統一
+
 prompt = """
 以下是符合團隊規範的代碼範例：
 
-範例1：
+範例 1：
+
 # 錯誤寫法
+
 def getUserData(userId):
-    return db.get(userId)
-
-# 正確寫法  
-def get_user_data(user_id: str) -> dict:
-    return database.fetch_user(user_id)
-
-範例2：
-# 錯誤寫法
-if len(items) > 0:
-    process(items)
+return db.get(userId)
 
 # 正確寫法
+
+def get_user_data(user_id: str) -> dict:
+return database.fetch_user(user_id)
+
+範例 2：
+
+# 錯誤寫法
+
+if len(items) > 0:
+process(items)
+
+# 正確寫法
+
 if items:
-    process_items(items)
+process_items(items)
 
 現在請修正以下代碼以符合團隊規範：
 {target_code}
 """`}
-    </CodeBlock>
+
+</CodeBlock>
 
   </TabsContent>
 
@@ -135,7 +170,7 @@ if items:
     **適用場景**：需要複雜推理或多步驟分析的任務
 
     ### 3. **Tree of Thought (ToT)**
-    
+
     **核心原理**：探索多個解決路徑，允許回溯和評估
 
     **最佳應用場景**：
@@ -145,22 +180,26 @@ if items:
 
     <CodeBlock language="python">
     {`# ToT 實戰範例：複雜演算法設計
+
 prompt = """
 任務：設計一個高效的圖形最短路徑演算法
 
 分支探索：
 
-分支 1：Dijkstra方法
+分支 1：Dijkstra 方法
+
 - 適用：非負權重，稠密圖
 - 時間複雜度：O(V²)
 - 評估：適合小規模圖
 
-分支 2：A*搜尋
+分支 2：A\*搜尋
+
 - 適用：有啟發式函數，目標明確
 - 時間複雜度：O(b^d)
-- 評估：適合遊戲AI路徑規劃
+- 評估：適合遊戲 AI 路徑規劃
 
 分支 3：Floyd-Warshall
+
 - 適用：所有點對之間最短路徑
 - 時間複雜度：O(V³)
 - 評估：適合小圖，需要所有路徑
@@ -169,7 +208,8 @@ prompt = """
 實際需求：{specific_requirements}
 推薦方案：[選擇並說明原因]
 """'}`}
-    </CodeBlock>
+
+</CodeBlock>
 
     **權衡考量**：
     - ✅ 適合複雜問題解決
@@ -177,7 +217,7 @@ prompt = """
     - ❌ 響應時間較長
 
     ### 4. **Structured Chain-of-Thought (SCoT)**
-    
+
     **核心原理**：將程式結構（序列、分支、循環）融入推理過程
 
     **最佳應用場景**：
@@ -187,17 +227,20 @@ prompt = """
 
     <CodeBlock language="python">
     {`# SCoT 實戰範例：演算法實作
+
 prompt = """
 任務：實作快速排序演算法
 
 結構化思考：
 
 1. SEQUENCE Structure（順序結構）：
+
    - 選擇基準元素
    - 分割陣列
    - 遞歸排序子陣列
 
 2. BRANCH Structure（分支結構）：
+
    - IF 陣列長度 <= 1: 直接返回
    - ELSE: 進行分割和遞歸
 
@@ -209,7 +252,8 @@ prompt = """
 最終實作：
 [基於以上結構生成代碼]
 """'}`}
-    </CodeBlock>
+
+</CodeBlock>
 
   </TabsContent>
 
@@ -219,7 +263,7 @@ prompt = """
     **適用場景**：需要平衡效果與成本的日常開發任務
 
     ### 5. **Role Prompting (RP)**
-    
+
     **核心原理**：賦予AI特定專業角色身份
 
     **最佳應用場景**：
@@ -230,8 +274,10 @@ prompt = """
 
     <CodeBlock language="python">
     {`# RP 實戰範例：代碼審查
+
 security_reviewer_prompt = """
-你是一位擁有15年經驗的資安專家，專精於：
+你是一位擁有 15 年經驗的資安專家，專精於：
+
 - OWASP Top 10 漏洞檢測
 - 代碼安全最佳實踐
 - 企業級安全架構
@@ -240,15 +286,17 @@ security_reviewer_prompt = """
 {code}
 
 重點檢查：
+
 1. 輸入驗證
-2. SQL注入風險
-3. XSS漏洞
+2. SQL 注入風險
+3. XSS 漏洞
 4. 權限控制
 5. 敏感資料處理
-"""
+   """
 
 performance_expert_prompt = """
 你是效能優化專家，擅長：
+
 - 演算法複雜度分析
 - 記憶體使用優化
 - 資料庫查詢優化
@@ -256,7 +304,8 @@ performance_expert_prompt = """
 請分析以下代碼的效能問題：
 {code}
 """'}`}
-    </CodeBlock>
+
+</CodeBlock>
 
     **權衡考量**：
     - ✅ Token使用量最低
@@ -265,7 +314,7 @@ performance_expert_prompt = """
     - ❌ 對複雜邏輯任務可能不足
 
     ### 6. **Zero-shot Chain-of-Thought**
-    
+
     **核心原理**：簡單添加推理引導詞
 
     **最佳應用場景**：
@@ -275,21 +324,445 @@ performance_expert_prompt = """
 
     <CodeBlock language="python">
     {`# Zero-shot CoT 實戰範例
+
 simple_prompt = """
 {task_description}
 
 讓我們一步步思考這個問題：
 """
 
-# 2025年優化版本
+# 2025 年優化版本
+
 enhanced_prompt = """
 {task_description}
 
 深呼吸，讓我們有條理地分析：
-1. 問題分解
-2. 解決方案設計
-3. 實作步驟
+
+1.  問題分解
+2.  解決方案設計
+3.  實作步驟
+    """'}`}
+
+    </CodeBlock>
+
+        ### 7. **Uncertainty-Guided Self-Consistency (USC)**
+
+        **核心原理**：基於不確定性評估選擇最可靠的答案
+
+        **最佳應用場景**：
+        - ✅ 關鍵決策支援（需要高可靠性）
+        - ✅ 複雜邏輯推理（需要多次驗證）
+        - ✅ 安全關鍵系統（容錯要求高）
+
+        <CodeBlock language="python">
+        {`# USC 實戰範例：關鍵決策支援
+
+    def uncertainty_guided_decision(problem, n_samples=5):
+    responses = []
+    confidence_scores = []
+
+        for i in range(n_samples):
+            prompt = f"""
+
+    問題：{problem}
+
+請提供詳細的分析和解決方案，並在最後評估你的信心程度（1-10 分）：
+
+分析：
+[你的分析過程]
+
+解決方案：
+[具體解決方案]
+
+信心程度：[1-10 分，10 分表示非常確定]
+原因：[解釋為什麼有這個信心程度]
+"""
+response = llm.generate(prompt)
+confidence = extract_confidence_score(response)
+
+        responses.append(response)
+        confidence_scores.append(confidence)
+
+    # 選擇最高信心度的回答
+    best_idx = confidence_scores.index(max(confidence_scores))
+    return responses[best_idx], confidence_scores[best_idx]`}
+    </CodeBlock>
+
+    ### 8. **Analogical Prompting (AP)**
+
+    **核心原理**：使用類比推理幫助模型理解複雜概念
+
+    **最佳應用場景**：
+    - ✅ 概念解釋和教學
+    - ✅ 創新解決方案設計
+    - ✅ 跨領域知識轉移
+
+    <CodeBlock language="python">
+    {`# AP 實戰範例：系統設計類比
+
+analogy_prompt = """
+設計一個分散式快取系統，就像設計一個圖書館系統：
+
+類比對應：
+
+- 圖書館分館 ↔ 快取節點
+- 圖書目錄 ↔ 快取索引
+- 圖書借閱記錄 ↔ 快取命中記錄
+- 館際互借 ↔ 節點間數據同步
+
+基於這個類比，設計快取系統：
+
+1. 如何決定在哪個"分館"存放"圖書"？
+   → 快取分片策略
+
+2. 當"圖書"不在本館時如何處理？
+   → 快取未命中處理
+
+3. 如何確保所有分館的目錄一致？
+   → 一致性協議設計
+
+請基於這個類比提供具體的技術實作方案。
 """'}`}
+
+</CodeBlock>
+
+  </TabsContent>
+
+  <TabsContent value="advanced-techniques">
+    ## 🚀 進階技術型
+
+    **適用場景**：特殊需求和高階應用場景
+
+    ### 9. **Self-Refine (SR)**
+
+    **核心原理**：讓模型自我評估和改進輸出結果
+
+    **最佳應用場景**：
+    - ✅ 代碼品質優化（需要多輪改進）
+    - ✅ 文檔撰寫（需要反覆修正）
+    - ✅ 複雜問題解決（需要迭代優化）
+
+    <CodeBlock language="python">
+    {`# SR 實戰範例：代碼品質優化
+
+def self_refine_code(initial_code, max_iterations=3):
+current_code = initial_code
+
+    for iteration in range(max_iterations):
+        refine_prompt = f"""
+
+請評估並改進以下代碼：
+
+當前代碼：
+{current_code}
+
+評估標準：
+
+1. 可讀性：變數命名、註解、結構清晰度
+2. 效能：時間複雜度、空間複雜度
+3. 安全性：輸入驗證、錯誤處理
+4. 可維護性：模組化、可測試性
+
+評估結果：
+[對當前代碼的評分和問題分析]
+
+改進版本：
+[提供改進後的代碼]
+
+改進說明：
+[解釋具體改進了什麼]
+"""
+
+        response = llm.generate(refine_prompt)
+        improved_code = extract_code_from_response(response)
+
+        if code_quality_score(improved_code) > code_quality_score(current_code):
+            current_code = improved_code
+        else:
+            break  # 沒有進一步改進
+
+    return current_code`}
+    </CodeBlock>
+
+    ### 10. **Generated Knowledge (GK)**
+
+    **核心原理**：先生成相關知識，再用於解決問題
+
+    **最佳應用場景**：
+    - ✅ 技術研究和學習
+    - ✅ 複雜領域問題解決
+    - ✅ 知識整合和應用
+
+    <CodeBlock language="python">
+    {`# GK 實戰範例：技術研究
+
+def generated_knowledge_approach(research_topic): # 第一步：生成相關知識
+knowledge_prompt = f"""
+關於 {research_topic}，請生成以下相關知識：
+
+1. 核心概念和定義
+2. 主要技術原理
+3. 常見應用場景
+4. 最佳實踐
+5. 常見陷阱和解決方案
+6. 相關工具和框架
+7. 未來發展趨勢
+
+請提供詳細且準確的知識內容。
+"""
+
+    knowledge_base = llm.generate(knowledge_prompt)
+
+    # 第二步：基於生成的知識解決具體問題
+    solution_prompt = f"""
+
+基於以下知識背景：
+{knowledge_base}
+
+現在請解決這個具體問題：
+{research_topic}
+
+要求：
+
+1.  引用上述知識中的相關概念
+2.  提供具體的實作建議
+3.  考慮實際應用中的限制
+4.  給出可行的實施步驟
+    """
+
+        solution = llm.generate(solution_prompt)
+        return knowledge_base, solution`}
+        </CodeBlock>
+
+        ### 11. **Least-to-Most (L2M)**
+
+        **核心原理**：將複雜問題分解為簡單子問題，逐步解決
+
+        **最佳應用場景**：
+        - ✅ 大型系統設計
+        - ✅ 複雜演算法實作
+        - ✅ 分階段專案規劃
+
+        <CodeBlock language="python">
+        {`# L2M 實戰範例：大型系統設計
+
+    def least_to_most_system_design(system_requirements): # 第一步：問題分解
+    decomposition_prompt = f"""
+    系統需求：{system_requirements}
+
+請將這個複雜系統分解為更小的子系統：
+
+分解原則：
+
+1. 每個子系統應該有明確的職責
+2. 子系統間的依賴關係要清晰
+3. 從最基礎的子系統開始
+4. 逐步增加複雜度
+
+分解結果：
+[列出所有子系統，按依賴順序排列]
+"""
+
+    decomposition = llm.generate(decomposition_prompt)
+    subsystems = extract_subsystems(decomposition)
+
+    # 第二步：逐步設計每個子系統
+    designs = []
+    context = ""
+
+    for subsystem in subsystems:
+        design_prompt = f"""
+
+已完成的設計：
+{context}
+
+現在設計子系統：{subsystem}
+
+要求：
+
+1. 基於已有的設計基礎
+2. 定義清晰的介面
+3. 考慮與其他子系統的整合
+4. 提供具體的技術實作方案
+
+設計方案：
+[詳細的子系統設計]
+"""
+
+        design = llm.generate(design_prompt)
+        designs.append(design)
+        context += f"\n\n{subsystem}: {design}"
+
+    return designs`}
+    </CodeBlock>
+
+    ### 12. **Program-Aided Language Models (PAL)**
+
+    **核心原理**：結合程式執行來解決複雜計算問題
+
+    **最佳應用場景**：
+    - ✅ 數值計算和分析
+    - ✅ 資料處理和轉換
+    - ✅ 演算法驗證和測試
+
+    <CodeBlock language="python">
+    {`# PAL 實戰範例：演算法驗證
+
+def program_aided_verification(algorithm_description):
+pal_prompt = f"""
+演算法描述：{algorithm_description}
+
+請生成可執行的程式來驗證這個演算法：
+
+步驟 1：理解演算法邏輯
+[分析演算法的核心邏輯]
+
+步驟 2：生成測試程式
+
+\`\`\`python
+def algorithm_implementation(): # 實作演算法
+pass
+
+def generate_test_cases(): # 生成測試案例
+pass
+
+def verify_algorithm(): # 驗證演算法正確性
+test_cases = generate_test_cases()
+for case in test_cases:
+result = algorithm_implementation(case)
+expected = calculate_expected(case)
+assert result == expected, f"Failed for {case}"
+print("All tests passed!")
+
+# 執行驗證
+
+verify_algorithm()
+\`\`\`
+
+步驟 3：分析結果
+[基於程式執行結果分析演算法的正確性和效能]
+"""
+
+    return llm.generate(pal_prompt)`}
+    </CodeBlock>
+
+    ### 13. **Retrieval-Augmented Generation (RAG)**
+
+    **核心原理**：結合外部知識庫提供更準確的答案
+
+    **最佳應用場景**：
+    - ✅ 技術文檔查詢
+    - ✅ 程式庫API使用
+    - ✅ 最佳實踐參考
+
+    <CodeBlock language="python">
+    {`# RAG 實戰範例：技術文檔查詢
+
+def rag_technical_query(query, knowledge_base): # 第一步：檢索相關文檔
+relevant_docs = retrieve_documents(query, knowledge_base, top_k=5)
+
+    # 第二步：基於檢索結果生成答案
+    rag_prompt = f"""
+
+查詢問題：{query}
+
+相關技術文檔：
+{format_documents(relevant_docs)}
+
+基於以上文檔，請提供準確的答案：
+
+1. 直接回答問題
+2. 引用具體的文檔段落
+3. 提供實際的程式範例
+4. 說明注意事項和最佳實踐
+
+答案：
+[基於文檔的詳細回答]
+
+參考來源：
+[列出引用的文檔段落]
+"""
+
+    response = llm.generate(rag_prompt)
+    return response, relevant_docs`}
+    </CodeBlock>
+
+    ### 14. **Multi-Agent Debate (MAD)**
+
+    **核心原理**：模擬多個專家觀點進行辯論，得出最佳解決方案
+
+    **最佳應用場景**：
+    - ✅ 技術方案評估
+    - ✅ 架構設計決策
+    - ✅ 複雜問題分析
+
+    <CodeBlock language="python">
+    {`# MAD 實戰範例：技術方案評估
+
+def multi_agent_debate(technical_problem, num_rounds=3):
+agents = [
+"資深後端工程師：專注效能和擴展性",
+"前端架構師：關注用戶體驗和可維護性",
+"DevOps 專家：重視部署和運維便利性",
+"安全專家：強調安全性和合規性"
+]
+
+    debate_history = []
+
+    for round_num in range(num_rounds):
+        round_responses = []
+
+        for agent in agents:
+            debate_prompt = f"""
+
+你是一位{agent}。
+
+技術問題：{technical_problem}
+
+之前的辯論內容：
+{format_debate_history(debate_history)}
+
+請從你的專業角度：
+
+1. 分析這個技術問題
+2. 提出你的解決方案
+3. 評論其他專家的觀點
+4. 說明你方案的優勢
+
+你的觀點：
+[詳細的專業分析和建議]
+"""
+
+            response = llm.generate(debate_prompt)
+            round_responses.append({
+                'agent': agent,
+                'response': response
+            })
+
+        debate_history.append({
+            'round': round_num + 1,
+            'responses': round_responses
+        })
+
+    # 最終綜合
+    synthesis_prompt = f"""
+
+基於以下多輪專家辯論：
+{format_debate_history(debate_history)}
+
+請綜合所有專家觀點，提出最終的技術解決方案：
+
+1. 整合各方優點
+2. 平衡不同需求
+3. 提供具體實施建議
+4. 說明潛在風險和緩解措施
+
+最終方案：
+[綜合性的解決方案]
+"""
+
+    final_solution = llm.generate(synthesis_prompt)
+    return final_solution, debate_history`}
     </CodeBlock>
 
   </TabsContent>
@@ -317,17 +790,18 @@ enhanced_prompt = """
     {`urgent_debug_prompt = """
 你是一位經驗豐富的生產環境除錯專家，擅長快速定位關鍵問題。
 
-Bug描述：{bug_description}
+Bug 描述：{bug_description}
 錯誤日誌：{error_logs}
 影響範圍：{impact_scope}
 
 讓我們系統性地分析：
+
 1. 根據錯誤日誌快速定位問題根源
 2. 評估最小風險的修復方案
 3. 提供臨時緩解措施（如果需要）
-"""'}`}
-    </CodeBlock>
-  </CardContent>
+   """'}`}
+   </CodeBlock>
+   </CardContent>
 </Card>
 
 <Card className="mb-6">
@@ -351,24 +825,29 @@ Bug描述：{bug_description}
 
 設計微服務架構，探索多種方案：
 
-方案A：基於事件驅動架構
+方案 A：基於事件驅動架構
+
 - 優點：解耦性高，擴展性好
 - 缺點：複雜度高，除錯困難
 - 適用：高併發，數據一致性要求不嚴格
 
-方案B：分層架構 + API Gateway
+方案 B：分層架構 + API Gateway
+
 - 優點：結構清晰，易於理解
 - 缺點：可能出現瓶頸
 - 適用：團隊較小，業務邏輯清晰
 
-方案C：混合架構
+方案 C：混合架構
+
 - 核心服務用分層架構
 - 輔助服務用事件驅動
 - 平衡複雜度與彈性
 
 [評估各方案並推薦最適合的選擇]
 """'}`}
-    </CodeBlock>
+
+</CodeBlock>
+
   </CardContent>
 </Card>
 
@@ -391,43 +870,91 @@ Bug描述：{bug_description}
       <TableCell>代碼審查</TableCell>
       <TableCell>適中</TableCell>
       <TableCell>受限</TableCell>
-      <TableCell><Badge>Role Prompting</Badge></TableCell>
+      <TableCell>
+        <Badge>Role Prompting</Badge>
+      </TableCell>
       <TableCell>專業角色效果佳，成本低</TableCell>
     </TableRow>
     <TableRow>
       <TableCell>複雜演算法設計</TableCell>
       <TableCell>充裕</TableCell>
       <TableCell>寬鬆</TableCell>
-      <TableCell><Badge>Tree of Thought</Badge></TableCell>
+      <TableCell>
+        <Badge>Tree of Thought</Badge>
+      </TableCell>
       <TableCell>需要探索多種方案</TableCell>
     </TableRow>
     <TableRow>
       <TableCell>代碼翻譯</TableCell>
       <TableCell>適中</TableCell>
       <TableCell>適中</TableCell>
-      <TableCell><Badge>ES-KNN</Badge></TableCell>
+      <TableCell>
+        <Badge>ES-KNN</Badge>
+      </TableCell>
       <TableCell>相似範例提供重要上下文</TableCell>
     </TableRow>
     <TableRow>
       <TableCell>快速原型</TableCell>
       <TableCell>緊迫</TableCell>
       <TableCell>受限</TableCell>
-      <TableCell><Badge>Zero-shot CoT</Badge></TableCell>
+      <TableCell>
+        <Badge>Zero-shot CoT</Badge>
+      </TableCell>
       <TableCell>簡單有效，響應快速</TableCell>
     </TableRow>
     <TableRow>
       <TableCell>系統架構設計</TableCell>
       <TableCell>充裕</TableCell>
       <TableCell>寬鬆</TableCell>
-      <TableCell><Badge>ToT + ES-KNN</Badge></TableCell>
+      <TableCell>
+        <Badge>ToT + ES-KNN</Badge>
+      </TableCell>
       <TableCell>組合使用效果更佳</TableCell>
     </TableRow>
     <TableRow>
       <TableCell>bug除錯</TableCell>
       <TableCell>緊迫</TableCell>
       <TableCell>適中</TableCell>
-      <TableCell><Badge>RP + Zero-shot CoT</Badge></TableCell>
+      <TableCell>
+        <Badge>RP + Zero-shot CoT</Badge>
+      </TableCell>
       <TableCell>專業性與效率的平衡</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>代碼品質優化</TableCell>
+      <TableCell>充裕</TableCell>
+      <TableCell>適中</TableCell>
+      <TableCell>
+        <Badge>Self-Refine</Badge>
+      </TableCell>
+      <TableCell>迭代改進，持續優化</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>技術方案評估</TableCell>
+      <TableCell>充裕</TableCell>
+      <TableCell>寬鬆</TableCell>
+      <TableCell>
+        <Badge>Multi-Agent Debate</Badge>
+      </TableCell>
+      <TableCell>多角度分析，決策更全面</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>演算法驗證</TableCell>
+      <TableCell>適中</TableCell>
+      <TableCell>適中</TableCell>
+      <TableCell>
+        <Badge>PAL</Badge>
+      </TableCell>
+      <TableCell>程式輔助，結果更可靠</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>技術文檔查詢</TableCell>
+      <TableCell>緊迫</TableCell>
+      <TableCell>適中</TableCell>
+      <TableCell>
+        <Badge>RAG</Badge>
+      </TableCell>
+      <TableCell>基於知識庫，答案更準確</TableCell>
     </TableRow>
   </TableBody>
 </Table>
@@ -438,22 +965,26 @@ Bug描述：{bug_description}
 
 <Alert variant="destructive" className="mb-4">
   <AlertDescription>
-    <strong>誤區1：追求「最佳」技術</strong><br/>
+    <strong>誤區1：追求「最佳」技術</strong>
+    <br />
     沒有萬能的提示技術。ES-KNN在某些任務優秀，但在簡單問答中可能過度複雜且昂貴。
   </AlertDescription>
 </Alert>
 
 <Alert variant="destructive" className="mb-4">
   <AlertDescription>
-    <strong>誤區2：忽略成本考量</strong><br/>
+    <strong>誤區2：忽略成本考量</strong>
+    <br />
     Tree of Thought雖然在複雜問題上表現出色，但token消耗可能是基礎提示的3-5倍。
   </AlertDescription>
 </Alert>
 
 <Alert variant="destructive" className="mb-4">
   <AlertDescription>
-    <strong>誤區3：模型無關化假設</strong><br/>
-    不同技術在不同模型上的表現差異巨大。Role Prompting在OpenAI o3-mini上效果突出，但在其他模型上可能一般。
+    <strong>誤區3：模型無關化假設</strong>
+    <br />
+    不同技術在不同模型上的表現差異巨大。Role Prompting在OpenAI
+    o3-mini上效果突出，但在其他模型上可能一般。
   </AlertDescription>
 </Alert>
 
@@ -495,20 +1026,22 @@ Bug描述：{bug_description}
         return "Role Prompting"
 
 # 使用範例
+
 evaluator = PromptTechniqueEvaluator()
 recommendation = evaluator.recommend_technique(
-    task_complexity=8,
-    time_constraint=3,
-    budget_limit=4,
-    accuracy_requirement=9
+task_complexity=8,
+time_constraint=3,
+budget_limit=4,
+accuracy_requirement=9
 )
 print(f"推薦技術: {recommendation}")`}
+
 </CodeBlock>
 
-### 2. **A/B測試框架**
+### 2. **A/B 測試框架**
 
 <CodeBlock language="python">
-{`async def compare_prompt_techniques(task, technique_a, technique_b, n=50):
+  {`async def compare_prompt_techniques(task, technique_a, technique_b, n=50):
     """
     比較兩種提示技術在特定任務上的表現
     重點：不是找出「最佳」，而是找出「最適合」
@@ -557,16 +1090,17 @@ print(f"推薦技術: {recommendation}")`}
 ### 關鍵原則：
 
 1. **任務先行**：先理解任務特性，再選擇技術
-2. **成本意識**：考慮token消耗、時間成本和維護複雜度
+2. **成本意識**：考慮 token 消耗、時間成本和維護複雜度
 3. **迭代改進**：持續測試和優化，而非一次性選擇
 4. **情境感知**：相同任務在不同情境下可能需要不同技術
 
 <Alert variant="default" className="mt-6">
   <AlertDescription>
-    <strong>立即行動</strong>：選擇你目前正在進行的一個具體任務，使用本文的決策框架選擇適合的提示技術，實際測試其效果。記住，適合的才是最好的！
+    <strong>立即行動</strong>
+    ：選擇你目前正在進行的一個具體任務，使用本文的決策框架選擇適合的提示技術，實際測試其效果。記住，適合的才是最好的！
   </AlertDescription>
 </Alert>
 
 ---
 
-*本文基於 [arXiv:2506.05614](https://arxiv.org/abs/2506.05614) 整理，但加入了批判性思考和實用導向的觀點*
+_本文基於 [arXiv:2506.05614](https://arxiv.org/abs/2506.05614) 整理，但加入了批判性思考和實用導向的觀點_
