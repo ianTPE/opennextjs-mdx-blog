@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React from "react";
 
 interface DimensionData {
   dimension: string;
@@ -17,10 +17,10 @@ interface MultiDimensionChartProps {
   dimensions: DimensionData[];
 }
 
-const MultiDimensionChart: React.FC<MultiDimensionChartProps> = ({ 
-  title, 
-  subtitle, 
-  dimensions 
+const MultiDimensionChart: React.FC<MultiDimensionChartProps> = ({
+  title,
+  subtitle,
+  dimensions,
 }) => {
   const renderStars = (score: number, maxScore: number = 5) => {
     const stars = [];
@@ -29,9 +29,7 @@ const MultiDimensionChart: React.FC<MultiDimensionChartProps> = ({
         <span
           key={i}
           className={`text-sm ${
-            i <= score 
-              ? 'text-yellow-400' 
-              : 'text-gray-300'
+            i <= score ? "text-yellow-400" : "text-gray-300"
           }`}
         >
           ★
@@ -49,20 +47,17 @@ const MultiDimensionChart: React.FC<MultiDimensionChartProps> = ({
     <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 shadow-lg border border-purple-100 my-8">
       {/* Header */}
       <div className="text-center mb-6">
-        <h3 className="text-2xl font-bold text-gray-800 mb-2">
-          {title}
-        </h3>
-        {subtitle && (
-          <p className="text-gray-600 text-sm">
-            {subtitle}
-          </p>
-        )}
+        <h3 className="text-2xl font-bold text-gray-800 mb-2">{title}</h3>
+        {subtitle && <p className="text-gray-600 text-sm">{subtitle}</p>}
       </div>
 
       {/* Dimensions Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {dimensions.map((dimension, dimIndex) => (
-          <div key={dimIndex} className="bg-white rounded-lg p-5 shadow-sm border border-gray-100">
+          <div
+            key={dimIndex}
+            className="bg-white rounded-lg p-5 shadow-sm border border-gray-100"
+          >
             {/* Dimension Title */}
             <h4 className="text-lg font-semibold text-gray-800 mb-4 text-center">
               {dimension.dimension}
@@ -71,10 +66,13 @@ const MultiDimensionChart: React.FC<MultiDimensionChartProps> = ({
             {/* Rankings */}
             <div className="space-y-3">
               {dimension.rankings.map((ranking, rankIndex) => (
-                <div key={rankIndex} className="flex items-center justify-between">
+                <div
+                  key={rankIndex}
+                  className="flex items-center justify-between"
+                >
                   {/* AI Name */}
                   <div className="flex items-center space-x-2 min-w-0 flex-1">
-                    <div 
+                    <div
                       className="w-3 h-3 rounded-full flex-shrink-0"
                       style={{ backgroundColor: ranking.color }}
                     ></div>
@@ -85,9 +83,7 @@ const MultiDimensionChart: React.FC<MultiDimensionChartProps> = ({
 
                   {/* Score and Stars */}
                   <div className="flex items-center space-x-2 flex-shrink-0">
-                    <div className="flex">
-                      {renderStars(ranking.score)}
-                    </div>
+                    <div className="flex">{renderStars(ranking.score)}</div>
                     <span className="text-xs text-gray-500 w-8 text-right">
                       {ranking.score}/5
                     </span>
@@ -125,12 +121,12 @@ const MultiDimensionChart: React.FC<MultiDimensionChartProps> = ({
           {/* Get unique AI names and their average scores */}
           {(() => {
             const aiStats = new Map();
-            dimensions.forEach(dim => {
-              dim.rankings.forEach(ranking => {
+            dimensions.forEach((dim) => {
+              dim.rankings.forEach((ranking) => {
                 if (!aiStats.has(ranking.name)) {
-                  aiStats.set(ranking.name, { 
-                    scores: [], 
-                    color: ranking.color 
+                  aiStats.set(ranking.name, {
+                    scores: [],
+                    color: ranking.color,
                   });
                 }
                 aiStats.get(ranking.name).scores.push(ranking.score);
@@ -138,11 +134,14 @@ const MultiDimensionChart: React.FC<MultiDimensionChartProps> = ({
             });
 
             return Array.from(aiStats.entries()).map(([name, data]) => {
-              const avgScore = (data.scores.reduce((a, b) => a + b, 0) / data.scores.length).toFixed(1);
+              const avgScore = (
+                data.scores.reduce((a: number, b: number) => a + b, 0) /
+                data.scores.length
+              ).toFixed(1);
               return (
                 <div key={name} className="bg-gray-50 rounded-lg p-3">
                   <div className="flex items-center justify-center space-x-2 mb-1">
-                    <div 
+                    <div
                       className="w-3 h-3 rounded-full"
                       style={{ backgroundColor: data.color }}
                     ></div>
@@ -153,9 +152,7 @@ const MultiDimensionChart: React.FC<MultiDimensionChartProps> = ({
                   <div className="text-lg font-bold text-gray-800">
                     {avgScore}/5
                   </div>
-                  <div className="text-xs text-gray-500">
-                    平均分數
-                  </div>
+                  <div className="text-xs text-gray-500">平均分數</div>
                 </div>
               );
             });
