@@ -91,14 +91,14 @@ import { Badge } from "@/components/ui/badge";
     - ✅ 代碼翻譯（需要對應語言範例）
     - ✅ API使用生成（需要相似用法範例）
 
-    <CodeBlock language="python">
-    {`# ES-KNN 實戰範例：克隆檢測
+```python
+# ES-KNN 實戰範例：克隆檢測
 
-def build_clone_detection_prompt(target_code): # 找出語意相似的範例
-similar_examples = find_similar_code_examples(target_code, k=3)
+def build_clone_detection_prompt(target_code): 
+    # 找出語意相似的範例
+    similar_examples = find_similar_code_examples(target_code, k=3)
 
     prompt = f"""
-
 基於這些相似的代碼範例：
 {format_examples(similar_examples)}
 
@@ -107,9 +107,8 @@ similar_examples = find_similar_code_examples(target_code, k=3)
 
 重點關注：變數命名、邏輯結構、功能語意
 """
-return prompt`}
-
-</CodeBlock>
+    return prompt
+```
 
     **權衡考量**：
     - ✅ 提供高度相關的上下文

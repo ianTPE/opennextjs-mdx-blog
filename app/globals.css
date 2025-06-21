@@ -185,3 +185,35 @@ html {
     @apply bg-background text-foreground;
   }
 }
+
+/* Code block styling fixes */
+pre code {
+  color: #e5e7eb !important; /* Light gray text */
+  background: transparent !important;
+}
+
+code {
+  color: #374151 !important; /* Dark gray for inline code */
+  background-color: #f3f4f6 !important;
+  padding: 0.125rem 0.25rem !important;
+  border-radius: 0.25rem !important;
+}
+
+pre {
+  background-color: #1f2937 !important; /* Dark background for code blocks */
+  color: #e5e7eb !important; /* Light text */
+  padding: 1rem !important;
+  border-radius: 0.5rem !important;
+  overflow-x: auto !important;
+}
+
+/* Dark mode code styling */
+.dark pre {
+  background-color: #111827 !important;
+  color: #f9fafb !important;
+}
+
+.dark code {
+  color: #f9fafb !important;
+  background-color: #374151 !important;
+}
