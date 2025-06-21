@@ -12,8 +12,8 @@ const cloudflareConfig: NextConfig = {
   // Output directory for static files
   distDir: "out",
 
-  // Add trailing slash for Cloudflare Pages compatibility
-  trailingSlash: true,
+  // Remove trailing slash to fix URL issues
+  trailingSlash: false,
 
   // React strict mode
   reactStrictMode: true,
