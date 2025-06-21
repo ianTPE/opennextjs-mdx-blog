@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "build:cf": "cp next.config.cloudflare.ts next.config.ts && next build && cp next.config.ts.backup next.config.ts",
+    "build:cf-safe": "node scripts/build-cloudflare.js",
     "pages:build": "npx @cloudflare/next-on-pages",
     "preview": "npm run pages:build && wrangler pages dev",
     "deploy": "npm run pages:build && wrangler pages deploy",
@@ -14,7 +16,8 @@
     "components:scan": "node scripts/scan-components.js",
     "components:update": "node scripts/update-component-mappings.js",
     "components:sync": "npm run components:update",
-    "prebuild": "node scripts/smart-prebuild.js"
+    "prebuild": "node scripts/smart-prebuild.js",
+    "test:images": "node scripts/test-image-loader.js"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
