@@ -1,0 +1,267 @@
+# TypeScript 最佳實踐指南
+
+## 使用類型推斷
+
+TypeScript 有優秀的類型推斷能力，不需要為每個變數都明確指定類型：
+
+```typescript
+// 不好
+const message: string = "Hello World";
+const count: number = 42;
+
+// 好
+const message = "Hello World"; // 推斷為 string
+const count = 42; // 推斷為 number
+```
+
+但在函數參數和返回值處，明確的類型定義是很重要的：
+
+```typescript
+// 好：明確的函數參數和返回值
+function greet(name: string): string {
+  return `Hello, ${name}!`;
+}
+
+// 好：使用箭頭函數
+const add = (a: number, b: number): number => a + b;
+```
+
+## 使用 Interface 而非 Type Alias（當適合時）
+
+對於物件形狀，Interface 提供了更好的擴展性：
+
+```typescript
+// 使用 Interface 定義物件形狀
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+// 擴展 Interface
+interface AdminUser extends User {
+  permissions: string[];
+}
+
+// 實現 Interface
+class UserImpl implements User {
+  id: number;
+  name: string;
+  email: string;
+  
+  constructor(id: number, name: string, email: string) {
+    this.id = id;
+    this.name = name;
+    this.email = email;
+  }
+}
+```
+
+## 使用字面量類型和聯合類型
+
+TypeScript 的字面量類型和聯合類型可以創建更精確的類型定義：
+
+```typescript
+// 使用字面量類型定義有限的可選值
+type Direction = 'up' | 'down' | 'left' | 'right';
+
+function move(direction: Direction, distance: number): void {
+  // 安全的使用 direction
+  console.log(`Moving ${direction} by ${distance} units`);
+}
+
+// 安全地調用
+move('up', 10);   // 正確
+move('north', 5); // 錯誤：'north' 不是有效的 Direction
+```
+
+## 善用泛型
+
+泛型可以創建可重用且類型安全的組件：
+
+```typescript
+// 泛型函數
+function identity<T>(arg: T): T {
+  return arg;
+}
+
+const num = identity(42);       // 推斷為 number
+const str = identity('hello');  // 推斷為 string
+
+// 泛型介面
+interface Box<T> {
+  value: T;
+}
+
+const numberBox: Box<number> = { value: 42 };
+const stringBox: Box<string> = { value: 'hello' };
+
+// 泛型類別
+class Queue<T> {
+  private items: T[] = [];
+  
+  enqueue(item: T): void {
+    this.items.push(item);
+  }
+  
+  dequeue(): T | undefined {
+    return this.items.shift();
+  }
+}
+
+const numberQueue = new Queue<number>();
+numberQueue.enqueue(1);
+numberQueue.enqueue(2);
+const item = numberQueue.dequeue();  // 推斷為 number | undefined
+```
+
+## 使用類型守衛進行安全的類型轉換
+
+類型守衛可以幫助我們安全地處理不同類型的值：
+
+```typescript
+// 使用自定義類型守衛
+function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
+function processValue(value: unknown): string {
+  if (isString(value)) {
+    // 在這個分支中，TypeScript 知道 value 是 string 類型
+    return value.toUpperCase();
+  }
+  
+  return String(value);
+}
+
+// 使用 instanceof 類型守衛
+class Animal {
+  name: string;
+  constructor(name: string) {
+    this.name = name;
+  }
+}
+
+class Dog extends Animal {
+  bark(): void {
+    console.log('Woof!');
+  }
+}
+
+function makeNoise(animal: Animal): void {
+  if (animal instanceof Dog) {
+    // 在這個分支中，TypeScript 知道 animal 是 Dog 類型
+    animal.bark();
+  } else {
+    console.log('Some generic animal noise');
+  }
+}
+
+// 使用區分聯合（Discriminated Union）
+type Shape = 
+  | { kind: 'circle'; radius: number }
+  | { kind: 'rectangle'; width: number; height: number };
+
+function calculateArea(shape: Shape): number {
+  switch (shape.kind) {
+    case 'circle':
+      return Math.PI * shape.radius ** 2;
+    case 'rectangle':
+      return shape.width * shape.height;
+  }
+}
+
+const circle: Shape = { kind: 'circle', radius: 5 };
+const rectangle: Shape = { kind: 'rectangle', width: 10, height: 20 };
+
+console.log(calculateArea(circle));     // 78.54...
+console.log(calculateArea(rectangle));  // 200
+```
+
+## 使用嚴格的編譯選項
+
+在 `tsconfig.json` 中，建議啟用這些嚴格選項：
+
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true
+  }
+}
+```
+
+## 避免使用 any 類型
+
+盡量避免使用 `any` 類型，這會繞過 TypeScript 的類型檢查：
+
+```typescript
+// 不好
+function processData(data: any): any {
+  return data.length > 10;
+}
+
+// 好
+function processData(data: string | string[]): boolean {
+  return data.length > 10;
+}
+
+// 更好：使用泛型和約束
+function processData<T extends { length: number }>(data: T): boolean {
+  return data.length > 10;
+}
+```
+
+## 善用工具類型
+
+TypeScript 提供了多種有用的工具類型：
+
+```typescript
+// Partial - 使所有屬性變為可選
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+function updateUser(id: number, userUpdate: Partial<User>): void {
+  // userUpdate 的所有字段都是可選的
+}
+
+updateUser(1, { name: 'New Name' });  // 有效，只更新了一個字段
+
+// Pick - 從類型中選擇特定屬性
+type UserCredentials = Pick<User, 'email' | 'id'>;
+
+// Omit - 排除特定屬性
+type UserWithoutEmail = Omit<User, 'email'>;
+
+// Record - 創建鍵值對類型
+type UserRoles = Record<number, 'admin' | 'user' | 'guest'>;
+
+const roles: UserRoles = {
+  1: 'admin',
+  2: 'user',
+  3: 'guest'
+};
+
+// ReturnType - 獲取函數返回類型
+function createUser(name: string, email: string): User {
+  return { id: Date.now(), name, email };
+}
+
+type CreatedUser = ReturnType<typeof createUser>;  // 等同於 User 類型
+```
+
+## 結語
+
+TypeScript 的類型系統是非常強大的，遵循這些最佳實踐可以幫助你寫出更加健壯和可維護的代碼。記住，TypeScript 的目標是增強你的開發體驗，而不是阻礙它。適當地使用類型系統，你的代碼會更加可靠且易於重構。
