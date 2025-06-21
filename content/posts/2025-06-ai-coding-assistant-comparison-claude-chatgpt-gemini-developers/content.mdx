@@ -233,12 +233,33 @@ const finalSolution = combineAndOptimize(solutions);
 
 我對 10+個主流 AI 平台進行了系統性的量化評測，滿分 60 分（6 個維度各 10 分）：
 
-| AI 平台  | 實用性 | 教學性 | 深度  | 安全性 | 創新性 | 總分  |
-| -------- | ------ | ------ | ----- | ------ | ------ | ----- |
-| Claude   | 10/10  | 9/10   | 9/10  | 8/10   | 10/10  | 56/60 |
-| ChatGPT  | 8/10   | 10/10  | 9/10  | 8/10   | 9/10   | 54/60 |
-| Gemini   | 7/10   | 8/10   | 10/10 | 10/10  | 7/10   | 49/60 |
-| DeepSeek | 8/10   | 7/10   | 7/10  | 7/10   | 6/10   | 42/60 |
+<AIScoreTable
+  title="AI 平台綜合評分對比"
+  subtitle="基於實用性、教學性、深度、安全性、創新性五大維度的量化評測"
+  dimensions={["實用性", "教學性", "深度", "安全性", "創新性"]}
+  data={[
+    {
+      platform: "Claude",
+      scores: { 實用性: 10, 教學性: 9, 深度: 9, 安全性: 8, 創新性: 10 },
+      color: "#3B82F6",
+    },
+    {
+      platform: "ChatGPT",
+      scores: { 實用性: 8, 教學性: 10, 深度: 9, 安全性: 8, 創新性: 9 },
+      color: "#10B981",
+    },
+    {
+      platform: "Gemini",
+      scores: { 實用性: 7, 教學性: 8, 深度: 10, 安全性: 10, 創新性: 7 },
+      color: "#F59E0B",
+    },
+    {
+      platform: "DeepSeek",
+      scores: { 實用性: 8, 教學性: 7, 深度: 7, 安全性: 7, 創新性: 6 },
+      color: "#8B5CF6",
+    },
+  ]}
+/>
 
 | AI 平台  | 總體評分 | 優勢領域                   | 適合場景           |
 | -------- | -------- | -------------------------- | ------------------ |
@@ -561,12 +582,41 @@ const finalSolution = combineAndOptimize(solutions);
 
 2. **技術方案的對比分析**
 
-| 技術方案                      | ChatGPT 評分 | 優勢                     | 缺陷                   |
-| ----------------------------- | ------------ | ------------------------ | ---------------------- |
-| 動態組件載入 (Dynamic Import) | 9/10         | 順序引入替代全局加載     | 數據取得與渲染分離複雜 |
-| 資料屬性管理 (MDXProvider)    | 8/10         | 一次性配置，方便共享     | 難以動態修改組件屬性   |
-| 伺服器端轉換 (SSR)            | 10/10        | 獨立於框架的通用解決方案 | 建置時需要額外處理時間 |
-| 安全沙箱运行 (eval 替代方案)  | 7/10         | 提供防止代碼注入的防護   | 實現複雜，性能成本較高 |
+<ResponsiveTable
+  title="技術方案的對比分析"
+  columns={[
+    { key: "solution", header: "技術方案", width: "35%", align: "left" },
+    { key: "score", header: "ChatGPT 評分", width: "20%", align: "center" },
+    { key: "advantages", header: "優勢", width: "22.5%", align: "left" },
+    { key: "disadvantages", header: "缺陷", width: "22.5%", align: "left" },
+  ]}
+  data={[
+    {
+      solution: "動態組件載入 (Dynamic Import)",
+      score: "9/10",
+      advantages: "順序引入替代全局加載",
+      disadvantages: "數據取得與渲染分離複雜",
+    },
+    {
+      solution: "資料屬性管理 (MDXProvider)",
+      score: "8/10",
+      advantages: "一次性配置，方便共享",
+      disadvantages: "難以動態修改組件屬性",
+    },
+    {
+      solution: "伺服器端轉換 (SSR)",
+      score: "10/10",
+      advantages: "獨立於框架的通用解決方案",
+      disadvantages: "建置時需要額外處理時間",
+    },
+    {
+      solution: "安全沙箱运行 (eval 替代方案)",
+      score: "7/10",
+      advantages: "提供防止代碼注入的防護",
+      disadvantages: "實現複雜，性能成本較高",
+    },
+  ]}
+/>
 
 ### 🥉 第三梯隊：Gemini
 
