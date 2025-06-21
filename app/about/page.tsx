@@ -13,11 +13,15 @@ import {
   SiTailwindcss,
   SiMdx,
 } from "react-icons/si";
+import { generateOGMetadata } from "@/lib/og-image";
 
-export const metadata = {
+export const metadata = generateOGMetadata({
   title: "關於我們 - Citrine.top",
   description: "了解 Citrine.top - 一個專注於 AI 與開發者協作的技術部落格",
-};
+  url: "https://citrine.top/about",
+  type: "website",
+  alt: "關於 Citrine.top - AI 協作開發技術部落格",
+});
 
 const techStack = [
   {

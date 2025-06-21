@@ -3,6 +3,7 @@ import { getPost, compileMDXWithComponents } from "@/lib/mdx";
 import { loadPostComponents } from "@/lib/simple-component-loader";
 import { getAllPostSlugs } from "@/lib/metadata-loader";
 import BlogPostContent from "@/components/blog/BlogPostContent";
+import { generateOGMetadata, getPostOGImage } from "@/lib/og-image";
 
 interface BlogPostPageProps {
   params: Promise<{ slug: string }>;
@@ -25,34 +26,19 @@ export async function generateMetadata({ params }: BlogPostPageProps) {
     };
   }
 
-  const ogImage = post.coverImage || "/images/default-og-image.webp";
+  const ogImage = getPostOGImage(post.coverImage);
 
-  return {
-    title: `${post.title} | Citrine.top`,
+  return generateOGMetadata({
+    title: post.title,
     description: post.summary,
-    openGraph: {
-      title: post.title,
-      description: post.summary,
-      type: "article",
-      publishedTime: post.date,
-      authors: [post.author || "Unknown"],
-      tags: post.tags,
-      images: [
-        {
-          url: ogImage,
-          width: 1200,
-          height: 630,
-          alt: post.title,
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: post.title,
-      description: post.summary,
-      images: [ogImage],
-    },
-  };
+    url: `https://citrine.top/blog/${slug}`,
+    type: "article",
+    image: ogImage,
+    alt: post.title,
+    publishedTime: post.date,
+    authors: [post.author || "Ian Chou"],
+    tags: post.tags,
+  });
 }
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {

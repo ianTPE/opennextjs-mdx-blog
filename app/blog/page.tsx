@@ -7,11 +7,15 @@ import {
   TagIcon,
   SparklesIcon,
 } from "@heroicons/react/24/outline";
+import { generateOGMetadata } from "@/lib/og-image";
 
-export const metadata = {
+export const metadata = generateOGMetadata({
   title: "文章 - Citrine.top",
   description: "探索 AI 與開發者協作的技術文章，分享最前沿的開發技術和創新思維",
-};
+  url: "https://citrine.top/blog",
+  type: "website",
+  alt: "Citrine.top 文章列表 - AI 協作開發技術文章",
+});
 
 export default async function BlogPage() {
   const posts = await getAllPosts();
