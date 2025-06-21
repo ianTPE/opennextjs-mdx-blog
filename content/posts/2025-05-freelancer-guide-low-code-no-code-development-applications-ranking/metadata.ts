@@ -2,7 +2,7 @@
 import type { PostMeta } from "../../../types/post";
 
 const metadata: PostMeta = {
-  slug: "2025-freelancer-guide-low-code-no-code-development-applications-ranking",
+  slug: "2025-05-freelancer-guide-low-code-no-code-development-applications-ranking",
   title: "2025年低代碼/無代碼全棧開發應用程式排名指南",
   date: "2025-05-15",
   summary:

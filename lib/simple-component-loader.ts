@@ -6,10 +6,10 @@ import { globalComponents } from "../components/mdx/global-components";
 const componentMappings: Record<string, () => Promise<unknown>> = {
   "2025-06-smart-component-system": () =>
     import("../content/posts/2025-06-smart-component-system/components/index"),
-  "2025-freelancer-guide-low-code-no-code-development-applications-ranking":
+  "2025-05-freelancer-guide-low-code-no-code-development-applications-ranking":
     () =>
       import(
-        "../content/posts/2025-freelancer-guide-low-code-no-code-development-applications-ranking/components/index"
+        "../content/posts/2025-05-freelancer-guide-low-code-no-code-development-applications-ranking/components/index"
       ),
 };
 
