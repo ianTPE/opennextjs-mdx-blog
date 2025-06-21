@@ -18,7 +18,8 @@
     "components:sync": "npm run components:update",
     "prebuild": "node scripts/smart-prebuild.js",
     "test:images": "node scripts/test-image-loader.js",
-    "fix:cloudflare": "node scripts/fix-cloudflare-build.js"
+    "fix:cloudflare": "node scripts/fix-cloudflare-build.js",
+    "sync:deps": "node scripts/sync-dependencies.js"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
