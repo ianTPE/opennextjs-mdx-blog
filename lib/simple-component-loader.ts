@@ -25,6 +25,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "../components/ui/tabs";
+import DialogueBlock from "../components/mdx/DialogueBlock";
 
 // Define global components directly
 const globalComponents = {
@@ -43,6 +44,7 @@ const globalComponents = {
   TableRow,
   Badge,
   CodeBlock,
+  DialogueBlock,
   Tabs,
   TabsContent,
   TabsList,

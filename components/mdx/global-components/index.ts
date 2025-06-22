@@ -15,6 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import DialogueBlock from "../DialogueBlock";
 
 export const globalComponents = {
   Alert,
@@ -27,5 +28,6 @@ export const globalComponents = {
   CardDescription,
   CardHeader,
   CardTitle,
+  DialogueBlock,
   UIAlert,
 };
