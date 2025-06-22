@@ -1,6 +1,6 @@
 import { PostMeta } from "@/types/post";
 
-export const metadata: PostMeta = {
+const metadata: PostMeta = {
   title: "當 AI 遇上人生的彎道：為什麼大型語言模型難以理解非線性思維？",
   slug: "2025-06-When_AI_Meets_Lifes_Curves",
   summary:
@@ -21,3 +21,5 @@ export const metadata: PostMeta = {
   coverImage: "/images/posts/2025-06-When_AI_Meets_Lifes_Curves.webp",
   readingTime: "12 min read",
 };
+
+export default metadata;
