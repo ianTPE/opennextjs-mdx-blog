@@ -359,74 +359,57 @@ npx wrangler pages deploy out/
 網站基礎架構就緒後，最艱難的任務來了：將 60+ 篇 MDX 文章從舊系統遷移到新架構。這不是簡單的複製貼上，而是一次深度的結構重組。
 
 **遷移複雜度分析：**
-- **文章結構變更**：從單檔案 MDX 改為 `content.mdx` + `metadata.ts` 結構
-- **組件路徑重構**：所有組件需要移動到 `/components` 目錄
-- **圖片路徑更新**：Cloudflare Pages 的靜態資源路徑不同
-- **元數據重構**：從 frontmatter 改為 TypeScript 模組
+- **目錄名稱規範化**：使用 Gemini + Python 腳本整理目錄名和 metadata slug
+- **依賴生態系統差異**：新專案的依賴版本與舊專案不同，組件相容性未知
+- **MDX + Components 相容性問題**：60+ 篇文章的組件能否在新環境正常運作
+- **建置系統差異**：從 Vercel 的 SSR 到 Cloudflare Pages 的靜態生成
 
 #### AI 協同工作流程
 
 我設計了一個系統化的 AI 協作流程：
 
-**第一階段：批量結構轉換**
+**第一階段：目錄規範化與直接複製**
 ```bash
-# 使用 Claude Code 創建轉換腳本
-# 輸入：舊的單檔案 MDX
-# 輸出：新的結構化目錄
+# 使用 Gemini + Python 腳本規範化目錄名
+# 原本目錄名不規範，需要統一命名
+python organize_posts.py
+# 輸出：規範化的目錄名 + 正確的 metadata slug
 
-For each article:
-  1. Extract frontmatter → metadata.ts
-  2. Extract content → content.mdx  
-  3. Identify components → /components/
-  4. Update image paths
-  5. Validate TypeScript types
+# 直接複製整個 content/posts 目錄
+cp -r old-project/content/posts new-project/content/posts
 ```
 
-**實際轉換範例：**
+**實際遷移挑戰：**
 
-舊結構（單檔案）：
-```markdown
----
-title: "Next.js MDX Blog Setup"
-date: "2024-05-15"
-tags: ["nextjs", "mdx", "blog"]
----
-
-# Next.js MDX Blog Setup
-
-Content here...
-
-<CustomChart data={[1,2,3]} />
+原有結構（已經是標準結構）：
+```
+content/posts/不規範的目錄名/
+├── content.mdx        # 原本就有
+├── metadata.ts        # 原本就有  
+└── components/        # 原本就有
+    ├── index.ts
+    └── CustomChart.tsx
 ```
 
-新結構（多檔案）：
+遷移後的真正問題：
 ```typescript
-// metadata.ts
-export const metadata = {
-  title: "Next.js MDX Blog Setup",
-  publishedAt: "2024-05-15",
-  tags: ["nextjs", "mdx", "blog"],
-  readingTime: 8
-} satisfies PostMeta;
+// 舊專案的組件可能使用舊版依賴
+import { Chart } from 'chart.js/v3';  // 舊版本
+import { motion } from 'framer-motion/v6';
+
+// 新專案的依賴版本
+import { Chart } from 'chart.js/v4';  // 新版本，API 不同
+import { motion } from 'framer-motion/v11';
 ```
 
-```markdown
-<!-- content.mdx -->
-# Next.js MDX Blog Setup
+**第二階段：依賴相容性修復**
 
-Content here...
+這是最核心的挑戰：60+ 篇文章的組件需要適配新的依賴生態系統：
 
-<CustomChart data={[1,2,3]} />
-```
-
-**第二階段：組件提取與優化**
-
-AI 幫助我分析每篇文章中的自定義組件，並進行以下處理：
-
-- **組件識別**：掃描 MDX 中的 JSX 組件
-- **依賴分析**：檢查組件的外部依賴
-- **程式碼生成**：創建對應的 React 組件檔案
-- **索引更新**：更新 `components/index.ts`
+- **依賴版本衝突**：Chart.js v3→v4、Framer Motion v6→v11、React 18→19
+- **API 破壞性變更**：許多組件的 props 和方法簽名改變
+- **TypeScript 類型更新**：新版本的類型定義更嚴格
+- **建置系統差異**：靜態導出對某些動態功能的限制
 
 #### 致命 Bug：Loading.tsx 災難
 
