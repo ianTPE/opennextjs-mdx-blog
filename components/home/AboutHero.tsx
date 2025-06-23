@@ -9,7 +9,7 @@ export default function AboutHero() {
     <section className="bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-blue-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Hero Container with Background Image */}
-        <div className="relative overflow-hidden rounded-3xl h-[600px] lg:h-[600px]">
+        <div className="relative overflow-hidden rounded-3xl h-[700px] sm:h-[650px] lg:h-[600px]">
           {/* Background Image */}
           <div className="absolute inset-0">
             <div
