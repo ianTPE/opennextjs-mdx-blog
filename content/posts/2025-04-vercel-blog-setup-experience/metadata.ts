@@ -3,7 +3,7 @@ import type { PostMeta } from "../../../types/post";
 
 const metadata: PostMeta = {
   slug: "2025-04-vercel-blog-setup-experience",
-  title: "從拖延到行動：我用Vercel快速建立部落格的實戰經驗與心得",
+  title: "從不斷拖延到快速行動：我用Vercel快速建立部落格的實際經驗與心得",
   date: "2025-04-04",
   summary:
     "在數月的拖延和過度思考後，我終於下定決心使用Vercel建立了自己的部落格。分享我如何選擇平台、利用AI輔助、實現一鍵部署的全過程。",
