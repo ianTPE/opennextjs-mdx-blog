@@ -10,8 +10,7 @@
     "stripe",
     "memory",
     "Context7",
-    "browser-tools",
-    "serena"
+    "browser-tools"
   ],
   "enableAllProjectMcpServers": true
 }
