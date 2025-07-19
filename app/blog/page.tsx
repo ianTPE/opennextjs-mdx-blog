@@ -125,12 +125,12 @@ export default async function BlogPage() {
                   <Link href={`/blog/${post.slug}`}>
                     {/* Cover Image */}
                     {post.coverImage && (
-                      <div className="relative h-48 overflow-hidden">
+                      <div className="relative h-48 overflow-hidden bg-slate-100 dark:bg-slate-800">
                         <Image
                           src={post.coverImage}
                           alt={post.title}
                           fill
-                          className="object-cover group-hover:scale-110 transition-transform duration-300"
+                          className="object-contain group-hover:scale-110 transition-transform duration-300"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                       </div>
