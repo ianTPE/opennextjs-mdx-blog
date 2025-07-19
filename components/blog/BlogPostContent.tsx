@@ -106,7 +106,7 @@ export default function BlogPostContent({
                         src={post.coverImage}
                         alt={post.title}
                         fill
-                        className="object-contain"
+                        className="object-cover"
                         priority
                       />
                     </div>
