@@ -67,7 +67,7 @@ export default function Header() {
                 Citrine.top
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 -mt-1">
-                AI 協作開發的未來
+                看到與AI人機合一的可能
               </p>
             </div>
           </Link>
