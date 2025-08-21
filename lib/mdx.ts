@@ -4,10 +4,27 @@ import { compileMDX } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import readingTime from "reading-time";
+import { visit } from "unist-util-visit";
+import type { Plugin } from "unified";
 import { Post } from "../types/post";
 import { loadPostMetadata } from "./metadata-loader";
 
 const POSTS_DIRECTORY = path.join(process.cwd(), "content/posts");
+
+// Rehype plugin to fix first line spacing in code blocks
+const fixCodeBlockSpacing: Plugin = () => {
+  return (tree) => {
+    visit(tree, 'element', (node) => {
+      if (node.tagName === 'pre' && node.children?.[0]?.tagName === 'code') {
+        const codeNode = node.children[0];
+        if (codeNode.children?.[0]?.type === 'text') {
+          // Remove leading whitespace and newline from the first line
+          codeNode.children[0].value = codeNode.children[0].value.replace(/^\s*\n/, '');
+        }
+      }
+    });
+  };
+};
 
 export async function getPostContent(slug: string): Promise<string> {
   const contentPath = path.join(POSTS_DIRECTORY, slug, "content.mdx");
@@ -61,7 +78,7 @@ export async function compileMDXWithComponents(
       parseFrontmatter: false,
       mdxOptions: {
         remarkPlugins: [remarkGfm],
-        rehypePlugins: [rehypeHighlight],
+        rehypePlugins: [fixCodeBlockSpacing, rehypeHighlight],
       },
     },
   });
