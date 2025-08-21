@@ -27,35 +27,7 @@
 
 ## 🎯 12 週學習路線圖
 
-```mermaid 
-gantt
-    title LLM System Engineering - 12 Week Roadmap
-    dateFormat YYYY-MM-DD
-    
-    section Foundation
-    LLM Fundamentals           :done,    task1, 2025-01-01, 7d
-    Prompt Engineering         :active,  task2, after task1, 7d
-    Structured Output          :         task3, after task2, 7d
-    Milestone 1                :milestone, m1, after task3, 0d
-    
-    section Practice
-    System Prompt              :         task4, after task3, 7d
-    Function Calling           :         task5, after task4, 7d
-    RAG and Cost               :         task6, after task5, 7d
-    Milestone 2                :milestone, m2, after task6, 0d
-    
-    section System
-    Chain of Thought           :         task7, after task6, 7d
-    Agent Architecture         :         task8, after task7, 7d
-    Observability              :         task9, after task8, 7d
-    Milestone 3                :milestone, m3, after task9, 0d
-    
-    section Project
-    DSL Design                 :         task10, after task9, 7d
-    Failure Analysis           :         task11, after task10, 7d
-    Final Project              :crit,    task12, after task11, 7d
-    Milestone 4                :milestone, m4, after task12, 0d
-```
+<LLMRoadmapGantt />
 
 ---
 
@@ -398,27 +370,7 @@ DEFINE AGENT CustomerService {
 
 ---
 
-## 🏆 學習成果檢核
-
-### 里程碑 1（第 3 週）：基礎能力
-- [ ] 能寫出穩定輸出的結構化 Prompt
-- [ ] 理解 Token 計算與成本估算
-- [ ] 完成第一個 JSON Schema 驗證
-
-### 里程碑 2（第 6 週）：工具整合
-- [ ] 實作 Function Calling 連接外部 API
-- [ ] 建立簡單的 RAG 系統
-- [ ] 完成成本優化，降低 50% 開銷
-
-### 里程碑 3（第 9 週）：系統思維
-- [ ] 設計完整的 Agent 架構
-- [ ] 實作監控與告警系統
-- [ ] 通過 A/B 測試驗證優化效果
-
-### 里程碑 4（第 12 週）：生產部署
-- [ ] 完成一個完整的生產級專案
-- [ ] 撰寫 DSL 與文件
-- [ ] 具備 Debug 與優化能力
+<LearningMilestones />
 
 ---
 
