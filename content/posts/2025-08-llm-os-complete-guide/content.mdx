@@ -134,6 +134,107 @@ observability:
     - user_feedback: true
 ```
 
+**📝 Lab 實作**：
+```python
+# Lab 1: CoT 與 Self-consistency 實驗
+def cot_experiment():
+    # Step 1: 直接提問
+    simple_prompt = "小明有 15 顆蘋果，吃掉 3 顆，又買了 8 顆，問他現在有幾顆？"
+    response_1 = llm.complete(simple_prompt)
+    print(f"直接回答: {response_1}")  # 可能不穩定
+    
+    # Step 2: 使用 Chain-of-Thought
+    cot_prompt = """
+    小明有 15 顆蘋果，吃掉 3 顆，又買了 8 顆，問他現在有幾顆？
+    
+    讓我一步步分析：
+    1. 首先，理解問題...
+    2. 接著，分析邏輯關係...
+    3. 最後，得出結論...
+    """
+    response_2 = llm.complete(cot_prompt)
+    print(f"With CoT: {response_2}")  # 改善
+    
+    # Step 3: 加入 Self-consistency
+    responses = [llm.complete(cot_prompt) for _ in range(5)]
+    final_answer = majority_vote(responses)
+    print(f"With Self-consistency: {final_answer}")  # 穩定
+    
+    # 學到：CoT 有效，但需要搭配策略
+```
+
+### 3. 反模式清單（Anti-patterns）
+
+#### ❌ **每階段的常見錯誤**
+
+**第一階段反模式**：
+- ❌ Prompt 裡寫死 "You must always..."（太絕對 → 容易失敗）
+- ❌ 忽略模型的隨機性，期待 100% 一致輸出
+- ❌ 沒有定義清楚的輸出格式
+
+**第二階段反模式**：
+- ❌ 用 LLM 做精確數學（應該用 Function/Tool）
+- ❌ Function Calling 沒有錯誤處理
+- ❌ System Prompt 超過 1000 tokens
+
+**第三階段反模式**：
+- ❌ 忽略 Token 限制，結果系統爆掉
+- ❌ RAG 檢索太多無關文件
+- ❌ Agent 無限循環沒有終止條件
+
+**Week 4：System Prompt 與進階 Prompt 工程**
+- 🔹 Lab: Plan → Solve → Verify Prompt 流程
+- 📖 閱讀：Constitutional AI 論文
+- 💡 作業：設計多角色協作 System Prompt
+
+**Week 5：Function / Tool Calling**
+- 🔹 Lab: 呼叫天氣 API 並格式化回覆
+- 📖 閱讀：Function Calling 文檔
+- 💡 作業：整合 3 個外部 API
+
+**Week 6：上下文管理、簡單 RAG、成本工程**
+- 🔹 Lab: FAQ chatbot + 成本分析 (GPT-3.5 vs GPT-4)
+- 📖 閱讀：Vector Database 比較
+- 💡 作業：優化成本降低 50%
+- 📍 **里程碑 2**：完成第一個小專題（POC）
+
+---
+
+### 🧩 第 7-9 週｜系統期
+**Week 7：Chain-of-Thought 與任務拆解**
+- 🔹 Lab: CoT + self-consistency 解謎題
+- 📖 閱讀：Chain-of-Thought 原始論文
+- 💡 作業：設計多步驟推理系統
+
+**Week 8：Agent 架構與進階 RAG**
+- 🔹 Lab: 問答 Agent（檢索+推理）
+- 📖 閱讀：ReAct Agent 論文
+- 💡 作業：建立知識管理系統
+
+**Week 9：可觀測性與 A/B 測試**
+- 🔹 Lab: 監控儀表板建置
+- 📖 閱讀：LLM Observability 最佳實務
+- 💡 作業：A/B 測試兩個 Prompt 版本
+- 📍 **里程碑 3**：完整系統（含監控）
+
+```python
+# 學習時間分配建議
+weekly_schedule = {
+    "理論學習": "2 小時",      # 論文、文件
+    "Lab 實作": "4 小時",      # 動手練習  
+    "專題開發": "3 小時",      # 整合應用
+    "社群交流": "1 小時"       # 討論、分享
+}
+─────────────────
+總計：10 小時/週
+```
+
+### 📈 學習曲線預期
+- **Week 1-3**：建立基礎，可能感到概念多
+- **Week 4-6**：開始整合，看到實際應用
+- **Week 7-9**：系統思維形成，能獨立設計
+- **Week 10-12**：專業水準，能處理生產問題
+
 **📚 延伸資源**：
 - [LlamaIndex RAG](https://docs.llamaindex.ai/en/stable/understanding/rag/)
 - [LangSmith 監控](https://docs.smith.langchain.com/)
