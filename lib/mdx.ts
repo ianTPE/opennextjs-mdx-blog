@@ -7,6 +7,7 @@ import readingTime from "reading-time";
 import { visit } from "unist-util-visit";
 import type { Plugin } from "unified";
 import type { Element, Text, ElementContent, Root } from "hast";
+import type { Transformer } from "unified";
 import { Post } from "../types/post";
 import { loadPostMetadata } from "./metadata-loader";
 
@@ -16,8 +17,8 @@ const POSTS_DIRECTORY = path.join(process.cwd(), "content/posts");
  * Ultra-aggressive rehype plugin to fix first line spacing in code blocks
  * This runs at multiple stages to ensure no spaces slip through
  */
-const ultraFixCodeBlockSpacing: Plugin = () => {
-  return (tree: Root) => {
+const ultraFixCodeBlockSpacing = () => {
+  return (tree: any) => {
     // First pass: Clean all code elements directly
     visit(tree, 'element', (node: Element) => {
       if (node.tagName === 'code' || node.tagName === 'pre') {
@@ -114,8 +115,8 @@ const ultraFixCodeBlockSpacing: Plugin = () => {
 /**
  * Post-highlighting cleanup
  */
-const postHighlightCleanup: Plugin = () => {
-  return (tree: Root) => {
+const postHighlightCleanup = () => {
+  return (tree: any) => {
     visit(tree, 'element', (node: Element) => {
       if (node.tagName === 'code') {
         // After syntax highlighting, clean up any introduced spaces
