@@ -28,7 +28,7 @@ export default function NuclearCodeBlock({ language = "text", code, children }: 
         try {
           const highlighted = hljs.highlight(cleanedContent, { language }).value;
           codeRef.current.innerHTML = highlighted;
-        } catch (e) {
+        } catch {
           // Fallback to plain text if highlighting fails
           codeRef.current.textContent = cleanedContent;
         }
