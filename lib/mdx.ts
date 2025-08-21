@@ -27,8 +27,18 @@ const fixCodeBlockSpacing: Plugin = () => {
           codeElement.children.forEach((child) => {
             if ('type' in child && child.type === 'text') {
               const textNode = child as Text;
-              // Remove leading whitespace and newlines
-              textNode.value = textNode.value.replace(/^[\s\n]+/, '');
+              let originalValue = textNode.value;
+              
+              // Remove leading whitespace, newlines, and any initial space
+              let newValue = originalValue
+                .replace(/^\s*\n/, '') // Remove leading whitespace + newline
+                .replace(/^\s+/, '')   // Remove any remaining leading whitespace
+                .replace(/^\n/, '');   // Remove any remaining leading newline
+              
+              // Update if changed
+              if (newValue !== originalValue) {
+                textNode.value = newValue;
+              }
             }
           });
         }
