@@ -48,8 +48,7 @@ const LLMRoadmapGantt: FC<LLMRoadmapGanttProps> = ({ config }) => {
       securityLevel: 'loose',
       gantt: { 
         useMaxWidth: true,
-        fontSize: 11,
-        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+        fontSize: 11
       },
       ...config,
     });
