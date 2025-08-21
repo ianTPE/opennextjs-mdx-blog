@@ -6,6 +6,7 @@ import rehypeHighlight from "rehype-highlight";
 import readingTime from "reading-time";
 import { visit } from "unist-util-visit";
 import type { Plugin } from "unified";
+import type { Element } from "hast";
 import { Post } from "../types/post";
 import { loadPostMetadata } from "./metadata-loader";
 
@@ -14,12 +15,12 @@ const POSTS_DIRECTORY = path.join(process.cwd(), "content/posts");
 // Rehype plugin to fix first line spacing in code blocks
 const fixCodeBlockSpacing: Plugin = () => {
   return (tree) => {
-    visit(tree, 'element', (node) => {
-      if (node.tagName === 'pre' && node.children?.[0]?.tagName === 'code') {
-        const codeNode = node.children[0];
-        if (codeNode.children?.[0]?.type === 'text') {
+    visit(tree, 'element', (node: Element) => {
+      if (node.tagName === 'pre' && node.children?.[0] && 'tagName' in node.children[0] && node.children[0].tagName === 'code') {
+        const codeNode = node.children[0] as Element;
+        if (codeNode.children?.[0] && 'type' in codeNode.children[0] && codeNode.children[0].type === 'text') {
           // Remove leading whitespace and newline from the first line
-          codeNode.children[0].value = codeNode.children[0].value.replace(/^\s*\n/, '');
+          (codeNode.children[0] as any).value = (codeNode.children[0] as any).value.replace(/^\s*\n/, '');
         }
       }
     });
