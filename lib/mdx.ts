@@ -6,7 +6,7 @@ import rehypeHighlight from "rehype-highlight";
 import readingTime from "reading-time";
 import { visit } from "unist-util-visit";
 import type { Plugin } from "unified";
-import type { Element } from "hast";
+import type { Element, Text } from "hast";
 import { Post } from "../types/post";
 import { loadPostMetadata } from "./metadata-loader";
 
@@ -16,11 +16,21 @@ const POSTS_DIRECTORY = path.join(process.cwd(), "content/posts");
 const fixCodeBlockSpacing: Plugin = () => {
   return (tree) => {
     visit(tree, 'element', (node: Element) => {
-      if (node.tagName === 'pre' && node.children?.[0] && 'tagName' in node.children[0] && node.children[0].tagName === 'code') {
-        const codeNode = node.children[0] as Element;
-        if (codeNode.children?.[0] && 'type' in codeNode.children[0] && codeNode.children[0].type === 'text') {
-          // Remove leading whitespace and newline from the first line
-          (codeNode.children[0] as any).value = (codeNode.children[0] as any).value.replace(/^\s*\n/, '');
+      if (node.tagName === 'pre') {
+        // Find code element
+        const codeElement = node.children?.find(child => 
+          'tagName' in child && child.tagName === 'code'
+        ) as Element | undefined;
+        
+        if (codeElement && codeElement.children) {
+          // Process text nodes
+          codeElement.children.forEach((child) => {
+            if ('type' in child && child.type === 'text') {
+              const textNode = child as Text;
+              // Remove leading whitespace and newlines
+              textNode.value = textNode.value.replace(/^[\s\n]+/, '');
+            }
+          });
         }
       }
     });
