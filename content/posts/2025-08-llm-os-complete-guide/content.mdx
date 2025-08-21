@@ -140,6 +140,443 @@ observability:
 
 ---
 
+### 🎨 第四階段：專題實戰（第 10-12 週）
+**目標**：整合前面模組，打造完整可用的生產級系統
+
+**專題方向與實作**：
+
+#### 專題 1：智慧客服 Agent
+```python
+class ProductionCustomerService:
+    """整合 RAG + 工單系統 + 多語言支援"""
+    
+    def __init__(self):
+        self.rag_engine = HybridRAG(
+            vector_db="pinecone",
+            keyword_db="elasticsearch",
+            reranker="cross-encoder"
+        )
+        self.ticket_system = JiraAPI()
+        self.sentiment_analyzer = SentimentModel()
+        self.translator = MultilingualSupport()
+    
+    def process_customer_request(self, request):
+        # 1. 語言檢測與翻譯
+        language = self.detect_language(request)
+        if language != "zh-TW":
+            request = self.translator.to_chinese(request)
+        
+        # 2. 情緒分析與優先級
+        sentiment = self.sentiment_analyzer.analyze(request)
+        priority = self.calculate_priority(sentiment)
+        
+        # 3. 知識庫檢索
+        solutions = self.rag_engine.search(
+            query=request,
+            filters={"product": self.extract_product(request)},
+            top_k=5
+        )
+        
+        # 4. 生成回應與建立工單
+        if sentiment.score < -0.7 or not solutions:
+            ticket = self.ticket_system.create(
+                title=f"Escalated: {request[:50]}",
+                priority=priority,
+                customer_sentiment=sentiment
+            )
+            return self.escalate_to_human(ticket)
+        
+        # 5. 品質保證
+        response = self.generate_response(solutions)
+        if not self.quality_check(response):
+            return self.fallback_response()
+        
+        return response
+```
+
+#### 專題 2：自然語言查資料庫
+```python
+class NL2SQL:
+    """自然語言轉 SQL 並執行"""
+    
+    def __init__(self):
+        self.schema_analyzer = SchemaAnalyzer()
+        self.sql_generator = SQLGenerator()
+        self.result_formatter = ResultFormatter()
+        self.safety_checker = SQLSafetyChecker()
+    
+    def query(self, natural_query: str, database: str):
+        # 1. 理解資料庫架構
+        schema = self.schema_analyzer.get_relevant_tables(
+            natural_query, 
+            database
+        )
+        
+        # 2. 生成 SQL（使用 CoT）
+        sql_chain = self.sql_generator.generate(
+            query=natural_query,
+            schema=schema,
+            examples=self.get_similar_examples(natural_query)
+        )
+        
+        # 3. 安全性檢查
+        if not self.safety_checker.is_safe(sql_chain.sql):
+            raise SecurityError("Potentially dangerous SQL detected")
+        
+        # 4. 執行與錯誤處理
+        try:
+            results = self.execute_with_timeout(
+                sql_chain.sql, 
+                timeout=5000
+            )
+        except Exception as e:
+            # 自動修正常見錯誤
+            corrected_sql = self.auto_correct(sql_chain.sql, str(e))
+            results = self.execute_with_timeout(corrected_sql)
+        
+        # 5. 格式化輸出
+        return self.result_formatter.format(
+            results, 
+            output_format=sql_chain.suggested_format
+        )
+```
+
+#### 專題 3：文件分析 Pipeline
+```python
+class DocumentAnalysisPipeline:
+    """CoT + DSL + 自動報表生成"""
+    
+    def __init__(self):
+        self.dsl_parser = DSLParser("doc_analysis_v2.dsl")
+        self.cot_processor = ChainOfThoughtProcessor()
+        self.report_generator = ReportGenerator()
+    
+    def analyze_documents(self, documents: List[str], analysis_spec: str):
+        # 1. DSL 解析分析需求
+        spec = self.dsl_parser.parse(analysis_spec)
+        """
+        ANALYZE contracts {
+            EXTRACT: parties, dates, amounts, obligations
+            COMPARE: payment_terms ACROSS documents
+            IDENTIFY: risks, inconsistencies
+            OUTPUT: executive_summary, detailed_findings
+        }
+        """
+        
+        # 2. CoT 多步驟分析
+        analysis_steps = self.cot_processor.plan(spec)
+        results = {}
+        
+        for step in analysis_steps:
+            step_result = self.execute_step(step, documents)
+            results[step.name] = step_result
+            
+            # 自我檢查
+            if not self.verify_step(step_result, step.expected_output):
+                # 重試機制
+                step_result = self.retry_with_different_approach(step)
+                results[step.name] = step_result
+        
+        # 3. 生成報表
+        report = self.report_generator.create(
+            template="legal_analysis_v3.jinja2",
+            data=results,
+            format="pdf"
+        )
+        
+        return report
+```
+
+**失敗案例分析工作坊**：
+
+```python
+class FailureAnalysisWorkshop:
+    """常見失敗模式與解決方案"""
+    
+    # 錯誤模式 1：Prompt Injection
+    def handle_prompt_injection(self, user_input):
+        # 偵測惡意指令
+        if self.detect_injection_patterns(user_input):
+            return "Invalid input detected"
+        
+        # 輸入消毒
+        sanitized = self.sanitize_input(user_input)
+        
+        # 沙盒執行
+        return self.execute_in_sandbox(sanitized)
+    
+    # 錯誤模式 2：Cascading Hallucinations
+    def prevent_hallucination_cascade(self, responses):
+        confidence_scores = []
+        for response in responses:
+            # 交叉驗證
+            score = self.cross_validate(response, self.knowledge_base)
+            confidence_scores.append(score)
+            
+            if score < 0.7:
+                # 立即中斷，避免錯誤傳播
+                return self.get_verified_response()
+        
+        return self.aggregate_responses(responses, confidence_scores)
+    
+    # 錯誤模式 3：Rate Limit Hell
+    def handle_rate_limits(self):
+        return RateLimitStrategy(
+            exponential_backoff=True,
+            max_retries=3,
+            fallback_model="gpt-3.5-turbo",
+            cache_layer=RedisCache(),
+            batch_processor=BatchQueue(size=100)
+        )
+```
+
+**📚 延伸資源**：
+- [Production Best Practices by OpenAI](https://platform.openai.com/docs/guides/production-best-practices)
+- [LLM Applications in Production](https://github.com/ray-project/llm-applications)
+
+---
+
+### 🚀 第五階段：前沿探索（第 13 週+）
+**目標**：跟進最新研究與趨勢，持續進化
+
+**前沿技術實作**：
+
+#### 1. 多模型協作系統
+```python
+class MultiModelOrchestrator:
+    """Mixture of Experts 架構"""
+    
+    def __init__(self):
+        self.models = {
+            "reasoning": "gpt-4",           # 複雜推理
+            "coding": "claude-3-opus",       # 程式生成
+            "creative": "claude-3-sonnet",   # 創意寫作
+            "fast": "gpt-3.5-turbo",        # 快速回應
+            "local": "llama-3-70b",         # 隱私保護
+            "vision": "gpt-4-vision"        # 圖像理解
+        }
+        self.router = IntelligentRouter()
+        self.consensus = ConsensusEngine()
+    
+    def process(self, task):
+        # 1. 智慧路由
+        selected_models = self.router.select_models(
+            task=task,
+            requirements=task.requirements,
+            budget=task.budget_constraint
+        )
+        
+        # 2. 平行處理
+        responses = parallel_execute(
+            models=selected_models,
+            task=task
+        )
+        
+        # 3. 共識機制
+        if task.requires_consensus:
+            final_response = self.consensus.aggregate(
+                responses,
+                strategy="weighted_voting"
+            )
+        else:
+            final_response = responses[0]  # 最適合的模型
+        
+        return final_response
+```
+
+#### 2. 長期記憶系統
+```python
+class LongTermMemory:
+    """持續上下文與記憶管理"""
+    
+    def __init__(self):
+        self.episodic_memory = EpisodicMemoryStore()  # 事件記憶
+        self.semantic_memory = SemanticMemoryGraph()   # 知識圖譜
+        self.working_memory = WorkingMemoryCache()     # 工作記憶
+        self.memory_consolidation = MemoryConsolidator()
+    
+    def remember(self, interaction):
+        # 1. 短期存儲
+        self.working_memory.store(interaction)
+        
+        # 2. 重要性評估
+        importance = self.evaluate_importance(interaction)
+        
+        if importance > 0.7:
+            # 3. 長期存儲
+            self.episodic_memory.store(
+                event=interaction,
+                timestamp=datetime.now(),
+                context=self.get_current_context()
+            )
+            
+            # 4. 知識萃取
+            knowledge = self.extract_knowledge(interaction)
+            self.semantic_memory.update(knowledge)
+        
+        # 5. 記憶固化（類似人類睡眠）
+        if self.should_consolidate():
+            self.memory_consolidation.consolidate(
+                working=self.working_memory,
+                episodic=self.episodic_memory,
+                semantic=self.semantic_memory
+            )
+    
+    def recall(self, query, context):
+        # 多層次記憶檢索
+        recent = self.working_memory.search(query)
+        episodes = self.episodic_memory.search(query, context)
+        knowledge = self.semantic_memory.query(query)
+        
+        return self.integrate_memories(recent, episodes, knowledge)
+```
+
+#### 3. 可編譯 DSL 系統
+```python
+class CompilableDSL:
+    """DSL → 可執行程式"""
+    
+    def compile_to_executable(self, dsl_code: str):
+        """
+        範例 DSL:
+        AGENT TaxAdvisor {
+            KNOWLEDGE: tax_law_2024, case_history
+            CAPABILITIES: calculate_tax, find_deductions
+            
+            WORKFLOW tax_consultation {
+                INPUT: income_data, expense_records
+                
+                STEP 1: validate_documents
+                STEP 2: identify_applicable_deductions
+                STEP 3: calculate_tax_liability
+                STEP 4: generate_recommendations
+                
+                OUTPUT: tax_report, action_items
+                AUDIT: log_all_calculations
+            }
+            
+            COMPLIANCE: gdpr, sox, local_tax_laws
+            SLA: response_time < 60s
+        }
+        """
+        
+        # 1. 語法解析
+        ast = self.parse_dsl(dsl_code)
+        
+        # 2. 語意分析
+        validated_ast = self.semantic_analysis(ast)
+        
+        # 3. 優化
+        optimized_ast = self.optimize(validated_ast)
+        
+        # 4. 程式碼生成
+        python_code = self.generate_python(optimized_ast)
+        
+        # 5. 執行時期綁定
+        executable = self.create_executable(
+            code=python_code,
+            runtime_bindings=self.get_runtime_bindings()
+        )
+        
+        return executable
+```
+
+#### 4. LLM 安全與治理
+```python
+class LLMGovernance:
+    """企業級 LLM 治理框架"""
+    
+    def __init__(self):
+        self.security = SecurityLayer()
+        self.compliance = ComplianceChecker()
+        self.audit = AuditLogger()
+        self.privacy = PrivacyProtector()
+    
+    def secure_execution(self, prompt, context):
+        # 1. 輸入檢查
+        if self.security.detect_injection(prompt):
+            self.audit.log_security_event("prompt_injection_attempt")
+            return self.security.sanitize(prompt)
+        
+        # 2. 隱私保護
+        masked_prompt = self.privacy.mask_pii(prompt)
+        
+        # 3. 合規檢查
+        compliance_check = self.compliance.check(
+            prompt=masked_prompt,
+            regulations=["GDPR", "CCPA", "金管會規範"]
+        )
+        
+        if not compliance_check.passed:
+            return self.handle_compliance_violation(compliance_check)
+        
+        # 4. 執行與稽核
+        response = self.execute_with_monitoring(masked_prompt)
+        
+        # 5. 輸出過濾
+        filtered_response = self.security.filter_output(response)
+        
+        # 6. 稽核記錄
+        self.audit.log_interaction(
+            prompt=masked_prompt,
+            response=filtered_response,
+            metadata=self.get_metadata()
+        )
+        
+        return filtered_response
+```
+
+#### 5. LLM OS 標準化提案
+```yaml
+# llm-os-standard-v1.yaml
+api_version: "1.0"
+standards:
+  communication:
+    protocol: "llm-rpc"
+    format: "json-rpc-2.0"
+    encoding: "utf-8"
+  
+  model_interface:
+    required_methods:
+      - generate(prompt, params)
+      - stream_generate(prompt, params)
+      - embed(text)
+      - tokenize(text)
+    
+    capability_declaration:
+      - max_tokens
+      - supported_languages
+      - function_calling
+      - vision_support
+  
+  observability:
+    metrics:
+      - token_usage
+      - latency_p50_p95_p99
+      - error_rate
+      - cost_per_request
+    
+    tracing:
+      - prompt_chain_id
+      - model_version
+      - timestamp
+      - parent_span_id
+  
+  security:
+    authentication: "oauth2"
+    encryption: "tls1.3"
+    rate_limiting: "token_bucket"
+    audit_log: "required"
+```
+
+**📚 延伸資源**：
+- [Agents Research by Anthropic](https://www.anthropic.com/research)
+- [Memory-Augmented LLMs](https://arxiv.org/abs/2404.memory)
+- [DSL for LLM Systems](https://github.com/dsl-for-llm)
+- [OWASP Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
+
+---
+
 ## 💼 實戰案例：從玩具到生產系統
 
 ### Case Study 1: 智慧客服系統演進
