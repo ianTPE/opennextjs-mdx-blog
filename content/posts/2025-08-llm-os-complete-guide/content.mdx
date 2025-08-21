@@ -163,78 +163,6 @@ def cot_experiment():
     # 學到：CoT 有效，但需要搭配策略
 ```
 
-### 3. 反模式清單（Anti-patterns）
-
-#### ❌ **每階段的常見錯誤**
-
-**第一階段反模式**：
-- ❌ Prompt 裡寫死 "You must always..."（太絕對 → 容易失敗）
-- ❌ 忽略模型的隨機性，期待 100% 一致輸出
-- ❌ 沒有定義清楚的輸出格式
-
-**第二階段反模式**：
-- ❌ 用 LLM 做精確數學（應該用 Function/Tool）
-- ❌ Function Calling 沒有錯誤處理
-- ❌ System Prompt 超過 1000 tokens
-
-**第三階段反模式**：
-- ❌ 忽略 Token 限制，結果系統爆掉
-- ❌ RAG 檢索太多無關文件
-- ❌ Agent 無限循環沒有終止條件
-
-**Week 4：System Prompt 與進階 Prompt 工程**
-- 🔹 Lab: Plan → Solve → Verify Prompt 流程
-- 📖 閱讀：Constitutional AI 論文
-- 💡 作業：設計多角色協作 System Prompt
-
-**Week 5：Function / Tool Calling**
-- 🔹 Lab: 呼叫天氣 API 並格式化回覆
-- 📖 閱讀：Function Calling 文檔
-- 💡 作業：整合 3 個外部 API
-
-**Week 6：上下文管理、簡單 RAG、成本工程**
-- 🔹 Lab: FAQ chatbot + 成本分析 (GPT-3.5 vs GPT-4)
-- 📖 閱讀：Vector Database 比較
-- 💡 作業：優化成本降低 50%
-- 📍 **里程碑 2**：完成第一個小專題（POC）
-
----
-
-### 🧩 第 7-9 週｜系統期
-**Week 7：Chain-of-Thought 與任務拆解**
-- 🔹 Lab: CoT + self-consistency 解謎題
-- 📖 閱讀：Chain-of-Thought 原始論文
-- 💡 作業：設計多步驟推理系統
-
-**Week 8：Agent 架構與進階 RAG**
-- 🔹 Lab: 問答 Agent（檢索+推理）
-- 📖 閱讀：ReAct Agent 論文
-- 💡 作業：建立知識管理系統
-
-**Week 9：可觀測性與 A/B 測試**
-- 🔹 Lab: 監控儀表板建置
-- 📖 閱讀：LLM Observability 最佳實務
-- 💡 作業：A/B 測試兩個 Prompt 版本
-- 📍 **里程碑 3**：完整系統（含監控）
-
-```python
-# 學習時間分配建議
-weekly_schedule = {
-    "理論學習": "2 小時",      # 論文、文件
-    "Lab 實作": "4 小時",      # 動手練習  
-    "專題開發": "3 小時",      # 整合應用
-    "社群交流": "1 小時"       # 討論、分享
-}
-─────────────────
-總計：10 小時/週
-```
-
-### 📈 學習曲線預期
-- **Week 1-3**：建立基礎，可能感到概念多
-- **Week 4-6**：開始整合，看到實際應用
-- **Week 7-9**：系統思維形成，能獨立設計
-- **Week 10-12**：專業水準，能處理生產問題
-
 **📚 延伸資源**：
 - [LlamaIndex RAG](https://docs.llamaindex.ai/en/stable/understanding/rag/)
 - [LangSmith 監控](https://docs.smith.langchain.com/)
@@ -675,6 +603,184 @@ standards:
 - [How memory augmentation can improve large language model efficiency and flexibility](https://research.ibm.com/blog/memory-augmented-LLMs)
 - [DSL for LLM Systems](https://github.com/microsoft/dsl-copilot)
 - [OWASP Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
+
+---
+
+## 📌 教學設計上的優化
+
+### 1. 學習路徑選擇
+
+#### 🚀 **快速通道（2-3 週）**
+適合：需要快速上手的開發者、POC 驗證
+```
+Week 1: Prompt 工程基礎 → 結構化輸出
+Week 2: Function Calling → 簡單 RAG
+Week 3: 小專題 POC Demo
+```
+
+#### 🎯 **完整通道（2-3 個月）**
+適合：想成為 LLM 系統工程師、負責生產系統
+```
+Month 1: 基礎打底（第一、二階段）
+Month 2: 系統建構（第三、四階段）
+Month 3: 專題實作 + 前沿探索（第五階段）
+```
+
+### 2. 每模組配套 Lab（15 分鐘實驗）
+
+#### 📝 Lab 範例：Chain-of-Thought 進階
+```python
+# Lab: 體驗 CoT 的威力
+def cot_lab():
+    puzzle = "如果所有的玫瑰都是花，有些花會凋謝，那麼...?"
+    
+    # Step 1: Zero-shot（通常失敗）
+    response_1 = llm.complete(puzzle)
+    print(f"Zero-shot: {response_1}")  # 邏輯混亂
+    
+    # Step 2: 加入 CoT
+    cot_prompt = f"""
+    {puzzle}
+    讓我們一步步思考：
+    1. 首先，確認前提...
+    2. 接著，分析邏輯關係...
+    3. 最後，得出結論...
+    """
+    response_2 = llm.complete(cot_prompt)
+    print(f"With CoT: {response_2}")  # 改善
+    
+    # Step 3: 加入 Self-consistency
+    responses = [llm.complete(cot_prompt) for _ in range(5)]
+    final_answer = majority_vote(responses)
+    print(f"With Self-consistency: {final_answer}")  # 穩定
+    
+    # 學到：CoT 有效，但需要搭配策略
+```
+
+### 3. 反模式清單（Anti-patterns）
+
+#### ❌ **每階段的常見錯誤**
+
+**第一階段反模式**：
+- ❌ Prompt 裡寫死 "You must always..."（太絕對 → 容易失敗）
+- ❌ 忽略模型的隨機性，期待 100% 一致輸出
+- ❌ 沒有定義清楚的輸出格式
+
+**第二階段反模式**：
+- ❌ 用 LLM 做精確數學（應該用 Function/Tool）
+- ❌ Function Calling 沒有錯誤處理
+- ❌ System Prompt 超過 1000 tokens
+
+**第三階段反模式**：
+- ❌ 忽略 Token 限制，結果系統爆掉
+- ❌ RAG 檢索太多無關文件
+- ❌ Agent 無限循環沒有終止條件
+
+**第四階段反模式**：
+- ❌ 沒有 Fallback 機制就上線
+- ❌ 忽略成本監控，帳單爆炸
+- ❌ 過度依賴單一模型
+
+**第五階段反模式**：
+- ❌ 過早優化，增加不必要的複雜度
+- ❌ 忽略安全性與合規要求
+- ❌ 沒有版本控制 Prompt 和 DSL
+
+---
+
+## 📊 詳細學習時間軸（12 週完整版）
+
+### 🚀 第 1-3 週｜基礎期
+**Week 1：LLM 基礎原理與思維模式**
+- 🔹 Lab: 測試不同模型相同 Prompt 的隨機性
+- 📖 閱讀：Transformer 論文精華
+- 💡 作業：比較 3 個模型的輸出差異
+
+**Week 2：Prompt Engineering 基礎**
+- 🔹 Lab: Zero-shot vs Few-shot 解邏輯題
+- 📖 閱讀：OpenAI Prompt Engineering Guide
+- 💡 作業：設計 10 個不同場景的 Prompt
+
+**Week 3：結構化輸出與評測先行**
+- 🔹 Lab: 設計 JSON schema + 驗證
+- 📖 閱讀：Structured Output 最佳實踐
+- 💡 作業：建立測試集與評測指標
+- 📍 **里程碑 1**：完成「穩定輸出 Demo」
+
+---
+
+### ⚡ 第 4-6 週｜實務期
+**Week 4：System Prompt 與進階 Prompt 工程**
+- 🔹 Lab: Plan → Solve → Verify Prompt 流程
+- 📖 閱讀：Constitutional AI 論文
+- 💡 作業：設計多角色協作 System Prompt
+
+**Week 5：Function / Tool Calling**
+- 🔹 Lab: 呼叫天氣 API 並格式化回覆
+- 📖 閱讀：Function Calling 文檔
+- 💡 作業：整合 3 個外部 API
+
+**Week 6：上下文管理、簡單 RAG、成本工程**
+- 🔹 Lab: FAQ chatbot + 成本分析 (GPT-3.5 vs GPT-4)
+- 📖 閱讀：Vector Database 比較
+- 💡 作業：優化成本降低 50%
+- 📍 **里程碑 2**：完成第一個小專題（POC）
+
+---
+
+### 🧩 第 7-9 週｜系統期
+**Week 7：Chain-of-Thought 與任務拆解**
+- 🔹 Lab: CoT + self-consistency 解謎題
+- 📖 閱讀：Chain-of-Thought 原始論文
+- 💡 作業：設計多步驟推理系統
+
+**Week 8：Agent 架構與進階 RAG**
+- 🔹 Lab: 問答 Agent（檢索+推理）
+- 📖 閱讀：ReAct Agent 論文
+- 💡 作業：建立 Multi-hop QA 系統
+
+**Week 9：可觀測性與 Debug**
+- 🔹 Lab: Prompt A/B 測試 + Token 分析
+- 📖 閱讀：LLM Observability 最佳實踐
+- 💡 作業：建立監控儀表板
+- 📍 **里程碑 3**：能觀測/Debug 一個小系統
+
+---
+
+### 🏗️ 第 10-12 週｜專題期
+**Week 10：DSL 與結構化高階語言設計**
+- 🔹 Lab: 設計報表生成 DSL
+- 📖 閱讀：DSL 設計模式
+- 💡 作業：實作領域特定語言
+
+**Week 11：失敗案例分析與 Fallback 策略**
+- 🔹 Lab: 模擬錯誤 → 設計重試/降級策略
+- 📖 閱讀：Production 失敗案例集
+- 💡 作業：設計完整的錯誤處理流程
+
+**Week 12：專題發表與前沿探索**
+- 🔹 Demo: 智慧客服 Agent / 文件分析 / DB 查詢系統
+- 📖 閱讀：最新研究論文 3 篇
+- 💡 作業：完整系統部署與文檔
+- 📍 **里程碑 4**：完整生產級 LLM OS 專題
+
+---
+
+### 🎓 每週時間分配建議
+```
+理論學習：3 小時
+Lab 實作：2 小時
+作業練習：3 小時
+閱讀資料：2 小時
+─────────────────
+總計：10 小時/週
+```
+
+### 📈 學習曲線預期
+- **Week 1-3**：建立基礎，可能感到概念多
+- **Week 4-6**：開始整合，看到實際應用
+- **Week 7-9**：系統思維形成，能獨立設計
+- **Week 10-12**：專業水準，能處理生產問題
 
 ---
 
