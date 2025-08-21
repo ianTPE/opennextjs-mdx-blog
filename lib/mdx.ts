@@ -6,77 +6,143 @@ import rehypeHighlight from "rehype-highlight";
 import readingTime from "reading-time";
 import { visit } from "unist-util-visit";
 import type { Plugin } from "unified";
-import type { Element, Text, ElementContent } from "hast";
+import type { Element, Text, ElementContent, Root } from "hast";
 import { Post } from "../types/post";
 import { loadPostMetadata } from "./metadata-loader";
 
 const POSTS_DIRECTORY = path.join(process.cwd(), "content/posts");
 
 /**
- * Rehype plugin to fix first line spacing in code blocks
- * This runs BEFORE syntax highlighting to clean raw text
+ * Ultra-aggressive rehype plugin to fix first line spacing in code blocks
+ * This runs at multiple stages to ensure no spaces slip through
  */
-const fixCodeBlockSpacingBefore: Plugin = () => {
-  return (tree) => {
+const ultraFixCodeBlockSpacing: Plugin = () => {
+  return (tree: Root) => {
+    // First pass: Clean all code elements directly
+    visit(tree, 'element', (node: Element) => {
+      if (node.tagName === 'code' || node.tagName === 'pre') {
+        cleanNodeRecursively(node);
+      }
+    });
+    
+    // Second pass: Specifically target pre > code structure
     visit(tree, 'element', (node: Element) => {
       if (node.tagName === 'pre') {
-        const codeElement = node.children?.find(
-          child => 'tagName' in child && child.tagName === 'code'
-        ) as Element | undefined;
-        
-        if (codeElement && codeElement.children && codeElement.children.length > 0) {
-          // Find and clean the first text node
-          let foundFirst = false;
+        const codeElement = findCodeElement(node);
+        if (codeElement) {
+          // Remove all empty text nodes at the beginning
+          while (codeElement.children.length > 0) {
+            const firstChild = codeElement.children[0];
+            if (isEmptyTextNode(firstChild)) {
+              codeElement.children.shift();
+            } else {
+              break;
+            }
+          }
           
-          const processChildren = (children: ElementContent[]): ElementContent[] => {
-            return children.map((child) => {
-              if (!foundFirst && 'type' in child && child.type === 'text') {
-                foundFirst = true;
-                const textNode = child as Text;
-                // Remove ALL leading whitespace including newlines, tabs, spaces
-                const cleaned = textNode.value.replace(/^[\s\n\r\t\u00A0\u2000-\u200B\uFEFF]+/, '');
-                return { ...textNode, value: cleaned };
-              }
-              
-              // Recursively process nested elements
-              if (!foundFirst && 'children' in child && child.children) {
-                return { ...child, children: processChildren(child.children) };
-              }
-              
-              return child;
-            });
-          };
-          
-          codeElement.children = processChildren(codeElement.children);
+          // Clean the first meaningful node
+          if (codeElement.children.length > 0) {
+            cleanFirstTextNode(codeElement.children[0]);
+          }
         }
       }
     });
   };
+  
+  function findCodeElement(node: Element): Element | undefined {
+    for (const child of node.children) {
+      if ('tagName' in child && child.tagName === 'code') {
+        return child as Element;
+      }
+    }
+    return undefined;
+  }
+  
+  function isEmptyTextNode(node: ElementContent): boolean {
+    return 'type' in node && 
+           node.type === 'text' && 
+           (node.value === '' || /^[\s\n\r\t]+$/.test(node.value));
+  }
+  
+  function cleanFirstTextNode(node: ElementContent): void {
+    if ('type' in node && node.type === 'text') {
+      const textNode = node as Text;
+      // Remove ALL leading whitespace characters
+      textNode.value = textNode.value.replace(/^[\s\n\r\t\u00A0\u2000-\u200B\uFEFF]+/, '');
+    } else if ('children' in node && node.children && node.children.length > 0) {
+      // If it's an element (like a span), clean its first child
+      cleanFirstTextNode(node.children[0]);
+    }
+  }
+  
+  function cleanNodeRecursively(node: Element): void {
+    let foundFirst = false;
+    
+    const processChildren = (children: ElementContent[]): ElementContent[] => {
+      return children.map((child, index) => {
+        if (!foundFirst) {
+          if ('type' in child && child.type === 'text') {
+            const textNode = child as Text;
+            if (textNode.value.trim() !== '') {
+              foundFirst = true;
+              textNode.value = textNode.value.replace(/^[\s\n\r\t\u00A0\u2000-\u200B\uFEFF]+/, '');
+            } else if (index === 0) {
+              // If first child is only whitespace, remove it completely
+              textNode.value = '';
+            }
+          } else if ('children' in child && child.children) {
+            const element = child as Element;
+            element.children = processChildren(element.children);
+          }
+        }
+        return child;
+      });
+    };
+    
+    if (node.children) {
+      node.children = processChildren(node.children).filter(child => {
+        // Remove empty text nodes from the beginning
+        if ('type' in child && child.type === 'text') {
+          return (child as Text).value !== '';
+        }
+        return true;
+      });
+    }
+  }
 };
 
 /**
- * Rehype plugin to fix spacing AFTER syntax highlighting
- * This handles cases where highlighting adds spans with whitespace
+ * Post-highlighting cleanup
  */
-const fixCodeBlockSpacingAfter: Plugin = () => {
-  return (tree) => {
+const postHighlightCleanup: Plugin = () => {
+  return (tree: Root) => {
     visit(tree, 'element', (node: Element) => {
-      if (node.tagName === 'code' && node.children && node.children.length > 0) {
-        const firstChild = node.children[0];
-        
-        // Case 1: Direct text node (no syntax highlighting)
-        if ('type' in firstChild && firstChild.type === 'text') {
-          const textNode = firstChild as Text;
-          textNode.value = textNode.value.replace(/^[\s\n\r\t]+/, '');
-        }
-        // Case 2: Span element from syntax highlighting
-        else if ('tagName' in firstChild && firstChild.tagName === 'span') {
-          const span = firstChild as Element;
-          if (span.children && span.children.length > 0) {
-            const spanFirstChild = span.children[0];
-            if ('type' in spanFirstChild && spanFirstChild.type === 'text') {
-              const textNode = spanFirstChild as Text;
-              textNode.value = textNode.value.replace(/^[\s\n\r\t]+/, '');
+      if (node.tagName === 'code') {
+        // After syntax highlighting, clean up any introduced spaces
+        if (node.children && node.children.length > 0) {
+          let cleaned = false;
+          
+          for (let i = 0; i < node.children.length && !cleaned; i++) {
+            const child = node.children[i];
+            
+            if ('type' in child && child.type === 'text') {
+              const textNode = child as Text;
+              if (textNode.value.trim() !== '') {
+                textNode.value = textNode.value.replace(/^[\s\n\r\t]+/, '');
+                cleaned = true;
+              }
+            } else if ('tagName' in child && child.tagName === 'span') {
+              const span = child as Element;
+              if (span.children && span.children.length > 0) {
+                const firstSpanChild = span.children[0];
+                if ('type' in firstSpanChild && firstSpanChild.type === 'text') {
+                  const textNode = firstSpanChild as Text;
+                  if (textNode.value.trim() !== '') {
+                    textNode.value = textNode.value.replace(/^[\s\n\r\t]+/, '');
+                    cleaned = true;
+                  }
+                }
+              }
             }
           }
         }
@@ -138,9 +204,9 @@ export async function compileMDXWithComponents(
       mdxOptions: {
         remarkPlugins: [remarkGfm],
         rehypePlugins: [
-          fixCodeBlockSpacingBefore,  // Clean before highlighting
+          ultraFixCodeBlockSpacing,   // Ultra-aggressive cleaning before highlighting
           rehypeHighlight,             // Apply syntax highlighting
-          fixCodeBlockSpacingAfter,   // Clean after highlighting
+          postHighlightCleanup,        // Clean up after highlighting
         ],
       },
     },

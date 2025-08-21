@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import DialogueBlock from "../DialogueBlock";
+import CustomCodeBlock from "../CustomCodeBlock";
 
 export const globalComponents = {
   Alert,
@@ -30,4 +31,6 @@ export const globalComponents = {
   CardTitle,
   DialogueBlock,
   UIAlert,
+  // Override default code component
+  code: CustomCodeBlock,
 };

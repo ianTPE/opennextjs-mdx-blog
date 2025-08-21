@@ -2,6 +2,7 @@ import "./globals.css";
 import { Inter } from "next/font/google";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import CodeBlockFixer from "@/components/CodeBlockFixer";
 import { generateOGMetadata } from "@/lib/og-image";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -25,6 +26,7 @@ export default function RootLayout({
   return (
     <html lang="zh-TW" className={inter.className}>
       <body className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+        <CodeBlockFixer />
         <Header />
         <main className="min-h-screen pt-16 lg:pt-20">{children}</main>
         <Footer />

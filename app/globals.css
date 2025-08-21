@@ -191,6 +191,28 @@ html {
 pre code {
   color: #e5e7eb !important; /* Light gray text */
   background: transparent !important;
+  display: block !important;
+  /* Fix first line spacing */
+  text-indent: 0 !important;
+}
+
+/* Remove any leading pseudo-elements that might add space */
+pre code::before {
+  content: none !important;
+}
+
+/* Ensure first span in code block has no extra spacing */
+pre code > span:first-child {
+  display: inline !important;
+  text-indent: 0 !important;
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+
+/* Reset any potential first-line styles */
+pre code::first-line {
+  text-indent: 0 !important;
+  margin-left: 0 !important;
 }
 
 code {
@@ -206,6 +228,9 @@ pre {
   padding: 1rem !important;
   border-radius: 0.5rem !important;
   overflow-x: auto !important;
+  /* Ensure no text-indent */
+  text-indent: 0 !important;
+  white-space: pre !important;
 }
 
 /* Dark mode code styling */
