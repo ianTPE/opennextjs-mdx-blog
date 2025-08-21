@@ -5,9 +5,7 @@ import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import readingTime from "reading-time";
 import { visit } from "unist-util-visit";
-import type { Plugin } from "unified";
-import type { Element, Text, ElementContent, Root } from "hast";
-import type { Transformer } from "unified";
+import type { Element, Text, ElementContent } from "hast";
 import { Post } from "../types/post";
 import { loadPostMetadata } from "./metadata-loader";
 
