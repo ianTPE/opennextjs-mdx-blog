@@ -288,7 +288,7 @@ Prompt:
 
 這裡我們用 Python 偽代碼來展示這個概念。在真實世界中，您可能會使用像 LaunchDarkly、Flagsmith 這樣的 Feature Flag 服務。
 
-Python
+```Python
 
 import random
 
@@ -334,7 +334,6 @@ def generate_product_copy(product_name, user_id):
     # 為了演示，我們直接返回 prompt 內容
     return prompt_template
 
-
 # --- 模擬不同用戶請求 ---
 user_a = 101
 user_b = 202
@@ -348,6 +347,7 @@ print("\n" + "="*50 + "\n")
 print("為 User B 生成文案:")
 copy_for_b = generate_product_copy("Aura 智慧香氛機", user_b)
 # print(copy_for_b) # 在真實應用中，你會看到 LLM 的生成結果
+```
 
 Lab 總結與討論
 
