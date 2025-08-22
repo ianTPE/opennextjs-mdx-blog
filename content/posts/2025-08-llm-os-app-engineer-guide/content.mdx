@@ -112,7 +112,7 @@
 ### 📚 核心內容
 在這個模組中，我們將深入探討如何將 Prompt Engineering 從一門藝術轉化為一門科學。您將學習如何系統化地管理、優化和測試您的 prompts，確保它們在實際應用中能夠發揮最大效用，並為您的產品或服務帶來可預測、可依賴的成果。
 
-### 1.1 Prompt 版本管理 (Version Control + Feature Flag)
+### 1.1 Prompt 版本管理：從開發到部署的雙循環
 為什麼版本管理至關重要？
 因為在 AI 應用中，每一條 Prompt 都是一個直接影響用戶體驗和商業成果的「產品功能」。
 
@@ -140,35 +140,39 @@
 
 這就是為什麼版本管理至關重要。 它不僅僅是為了防止工程師的「失誤」，更是為了賦能「產品和業務團隊」，讓他們能夠安全、高效地進行商業實驗，用數據驅動決策，並最終找到能夠最大化商業價值的溝通方式。
 
-#### 1.1.1 版本控制 (Version Control) - 您的 Prompt 安全網
+#### 1.1.1 版本控制 (Version Control) - 您的 Prompt 開發與品管中心
 
-版本控制不僅僅是為 prompt 加上 v1, v2, v3 的標籤。一個成熟的流程應該包含：
+版本控制不僅僅是為 prompt 加上 v1, v2 的標籤。一個專業的流程需要一個中央化的平台來管理、評估和迭代。
 
-- 集中式管理：將所有 prompts 存放在一個統一的地方，例如 Git Repo、專門的 Prompt 管理平台，或是資料庫中。這樣可以避免團隊成員使用不同步或過時的 prompts。
+- 集中式管理：除了使用 Git，更專業的做法是將所有 Prompts 存放在專為 LLM 應用設計的平台上，例如 LangFuse 或 Pezzo。
 
-- 明確的命名與註釋：
+    - 優點：這些平台提供了 UI 介面，讓團隊（包括非工程師）可以輕鬆查看、比較和管理所有 Prompts。您可以為每個 Prompt 附加元數據(metadata)，如作者、目標、以及版本說明。
 
-    - 版本號 (Versioning)：遵循語意化版本控制 (Semantic Versioning)，例如 v1.2.1。
+- 明確的命名與註釋：在 LangFuse/Pezzo 這類工具中，您可以為每個 Prompt 創建不同的版本 (e.g., v1, v2)。這些版本不僅僅是文本不同，它們是您可以獨立追蹤和評估的對象。
 
-        - 主版號 (1.x.x)：當 prompt 的核心邏輯或輸出格式有重大、不相容的改變時更新。
+- 與程式碼分離 (Decoupling)：
 
-        - 次版號 (x.2.x)：當新增功能或對 prompt 進行了顯著優化，但仍保持向下相容時更新。
+    - 這是 LangFuse/Pezzo 的核心優勢之一。您的應用程式程式碼不再寫死 Prompt 內容，而是透過 SDK 向這些平台請求特定版本的 Prompt (langfuse.get_prompt("marketing-copy", version=2))。這使得 Prompt 的更新和程式碼的部署完全分離。
 
-        - 修訂號 (x.x.1)：當修正錯字、調整語氣等小幅度的優化時更新。
+#### 1.1.2 Feature Flag - 您的 Prompt 線上策略部署中心
 
-    - 變更日誌 (Changelog)：詳細記錄每個版本的變更內容、修改原因以及優化效果。這對於團隊協作和未來回溯至關重要。
+當您在 LangFuse 或 Pezzo 中擁有了幾個經過測試、品質優良的 Prompt 候選版本後，下一個問題是：如何策略性地將它們部署到線上，並衡量其商業影響？這就是 Feature Flag 工具 LaunchDarkly 或 Flagsmith 發揮作用的地方。
 
-- 與程式碼分離：盡量將 prompts 從應用程式的程式碼中抽離出來。這樣一來，非工程師的團隊成員（如產品經理、行銷人員）也可以在不需要重新部署整個應用的情況下，參與 prompts 的迭代與優化。
+- 整個工作流程是：
 
-#### 1.1.2 Feature Flag - 靈活部署與風險控制的利器
+    1. 開發階段：在 LangFuse/Pezzo 中創建和版本化您的 Prompts (e.g., product-description-v1, product-description-v2)。
 
-Feature Flag（功能旗標）是一種允許您在不修改程式碼的情況下，動態開啟或關閉特定功能的技術。將它應用於 Prompt 管理，能帶來巨大的靈活性和安全性。
+    2. 部署階段：在 LaunchDarkly 中創建一個名為 productDescriptionPrompt 的 Feature Flag，並設定兩個變體 (variants)：一個返回字串 "v1"，另一個返回字串 "v2"。
 
-- 動態切換 Prompts：想像您有一個 greeting_prompt。透過 Feature Flag，您可以設定一個參數，讓系統根據不同的條件（例如：使用者地區、會員等級、或是一個開關）來決定要使用 greeting_prompt_v1 還是 greeting_prompt_v2_formal。
+    3. 應用程式邏輯：您的程式碼首先訪問 LaunchDarkly 得到當前用戶應該使用哪個版本 ("v1" 或 "v2")，然後拿著這個版本號去 LangFuse/Pezzo 獲取對應的 Prompt 內容來執行。
 
-- 灰度發布 (Canary Release)：當您開發了一個全新的、更強大的 prompt v3.0，您可能不想立刻將它推送給所有使用者。利用 Feature Flag，您可以先將 v3.0 開放給 1% 的內部員工或測試用戶，觀察其表現。如果效果良好，再逐步擴大到 5%、20%，最終全面上線。這個過程能大幅降低因新 prompt 表現不佳而導致的大規模負面影響。
+- Feature Flag（功能旗標）的主要功能：
 
-- 緊急回退 (Kill Switch)：如果在全面上線後，發現新版的 prompt 在某些邊界情況下會產生有害或不當的內容，您可以立即透過 Feature Flag 將其關閉，讓系統瞬間切換回上一個穩定的版本，而不需要緊急進行程式碼的重新部署。
+    - 動態切換 Prompts：想像您有一個 greeting_prompt。透過 Feature Flag，您可以設定一個參數，讓系統根據不同的條件（例如：使用者地區、會員等級、或是一個開關）來決定要使用 greeting_prompt_v1 還是 greeting_prompt_v2_formal。
+
+    - 灰度發布 (Canary Release)：當您開發了一個全新的、更強大的 prompt v3.0，您可能不想立刻將它推送給所有使用者。利用 Feature Flag，您可以先將 v3.0 開放給 1% 的內部員工或測試用戶，觀察其表現。如果效果良好，再逐步擴大到 5%、20%，最終全面上線。這個過程能大幅降低因新 prompt 表現不佳而導致的大規模負面影響。
+
+    - 緊急回退 (Kill Switch)：如果在全面上線後，發現新版的 prompt 在某些邊界情況下會產生有害或不當的內容，您可以立即透過 Feature Flag 將其關閉，讓系統瞬間切換回上一個穩定的版本，而不需要緊急進行程式碼的重新部署。
 
 ### 1.2 核心 Prompt 技術的應用場景 (Few-shot, CoT, ReAct)
 了解了如何管理 prompts 之後，我們來深入探討三種能顯著提升 LLM 表現的核心技術。了解它們各自的適用場景，是成為高級 Prompt Engineer 的關鍵。
@@ -213,55 +217,70 @@ Feature Flag（功能旗標）是一種允許您在不修改程式碼的情況�
 
     - 自動化研究與報告生成：給定一個主題，ReAct 框架可以讓模型主動上網搜尋資料 (行動)，閱讀並總結搜尋結果 (觀察 & 思考)，最終生成一份結構完整的報告。
 
-### 1.3 Prompt 測試與 A/B 比較 - 用數據驅動優化
-一個好的 prompt 不是憑感覺想出來的，而是透過嚴謹的測試和數據分析迭代出來的。
+> 💡 教學提示：「當您在設計這些不同策略的 Prompt 時，最佳實踐是將它們作為不同的版本保存在您的 Prompt 管理平台（如 LangFuse）中。例如，您可以有一個 baseline 版本、一個 few-shot 版本和一個 CoT 版本，這樣便於後續進行系統化的測試和比較。」
 
-#### 1.3.1 建立評估標準 (Evaluation Metrics)
+### 1.3 Prompt 測試與 A/B 比較：從實驗室到真實世界的雙層次評估法
+一個好的 Prompt 不是憑感覺想出來的，而是需要經過科學驗證。這個驗證過程就像新藥上市，需要經過兩個核心階段：實驗室裡的嚴格品管，和真實世界裡的臨床試驗。
 
-在開始測試前，您必須先定義「好」的標準是什麼。
+#### 1.3.1 層次一：上線前的「品質檢驗」(The "Lab Coat" Phase)
 
-- 客觀指標：
+在這個階段，我們像科學家一樣在控制環境中做測試。我們的目標不是看它能不能賺錢，而是回答一個更基本的問題：「這個 Prompt 安全、穩定、正確嗎？」
 
-    - 準確率 (Accuracy)：對於分類或事實性問答，答案是否正確。
+- 由誰主導？ 主要由工程師和 AI 團隊主導。
 
-    - 完整性 (Completeness)：回答是否涵蓋了問題的所有方面。
+- 測試方法：黃金測試集 (Golden Set)
 
-    - 格式符合率 (Format Compliance)：輸出是否嚴格遵守了您要求的格式 (例如，JSON 格式是否合法)。
+    - 我們會準備一個包含數十到數百個「考題」的測試集 (e.g., 不同的產品名稱、用戶問題)。
 
-- 主觀指標：
+    - 用這個測試集去執行我們的 Prompt 新版本，確保它不會產生有害內容、不會跑出奇怪的格式、並且答案品質在一個基本水準之上。
 
-    - 流暢度 (Fluency)：文本是否通順、自然。
+- 評估指標： 這時我們關注的是客觀指標和主觀指標。
 
-    - 相關性 (Relevance)：回答是否緊扣主題，沒有無關的廢話。
+    - 格式符合率：輸出的 JSON 是否總是合法？
 
-    - 安全性 (Safety)：是否包含有害、偏見或不當的內容。
+    - 安全性：是否會生成不當言論？
 
-- 業務指標：
+    - 準確率：對於某些任務，回答是否正確？
 
-    - 轉換率 (Conversion Rate)：行銷文案 prompt 是否提升了點擊率或購買率。
+- 核心工具： 這就是 LangFuse, Pezzo, LangSmith 這類 LLMOps 平台發揮巨大價值的地方。它們能幫助我們管理黃金測試集，自動化地運行測試，並記錄下每個 Prompt 版本在這些品質指標上的表現（例如成本、延遲、評分）。
 
-    - 用戶滿意度 (Customer Satisfaction)：客服機器人的 prompt 是否提升了用戶的滿意度分數。
+一句話總結： 在這個階段，我們淘汰掉那些「不及格」的 Prompt，篩選出幾個品質優良的「候選版本」進入下一輪。
 
-#### 1.3.2 測試方法
+#### 1.3.2 層次二：上線後的「市場驗證」(The "In the Wild" Phase)
 
-- 黃金測試集 (Golden Set)：建立一個包含數十到數百個具代表性的輸入案例和其對應的「標準答案」的測試集。每當您修改 prompt 後，都用這個測試集來進行回歸測試，確保新的 prompt 沒有在舊的、重要的案例上出錯。
+當一個 Prompt 通過了品質檢驗，證明它是一個「好」的 Prompt 後，我們還需要將它放到真實的市場中去驗證，回答一個商業問題：「這個 Prompt 能為我們帶來商業價值嗎？」
 
-- A/B 測試 (A/B Testing)：
+- 由誰主導？ 主要由產品經理和行銷團隊主導。
 
-    - 這是線上評估 prompt 效果最科學的方法。
+- 測試方法：A/B 測試 (A/B Testing)
 
-    - 將您的用戶流量隨機分成兩組（或多組）。A 組使用舊的 baseline prompt，B 組使用新的優化版 prompt。
+    - 我們將通過品質檢驗的「候選版本」（例如，舊的穩定版 vs. 新的優化版）同時推送給線上用戶。
 
-    - 運行一段時間後，根據您預先設定的業務指標（如點擊率、用戶留存時間等）來比較哪一組的表現更好。
+    - 透過隨機分流，讓一部分用戶看到 A 版本，另一部分看到 B 版本。
 
-    - A/B 測試的結果是最有說服力的，因為它反映了 prompt 在真實世界中的真實表現。
+- 評估指標： 這時我們關注的是業務指標。
 
-實作 Lab：建立三版 Prompt，用 Feature Flag 動態切換
-目標：模擬一個為電商產品生成簡短行銷文案的場景，並體驗如何透過 Feature Flag 在不同版本的 Prompt 之間進行切換。
+    - 轉換率：哪個版本的文案帶來了更多的銷售？
 
-場景：我們需要為一個名為「Aura 智慧香氛機」的產品生成一段吸引人的社群媒體貼文。
+    - 用戶滿意度：哪個版本的客服機器人收到了更多的好評？
 
-步驟 1：定義三版 Prompts
+- 核心工具組合：
+
+    1. 功能旗標服務 (LaunchDarkly/Flagsmith)：用它強大的後台來設定流量分配規則（例如 50% vs 50%），並可以隨時調整或關閉實驗，而不需要工程師修改程式碼。
+
+    2. 數據分析工具 (Google Analytics, Mixpanel 等)：用來衡量和比較不同組別在業務指標上的表現。
+
+一句話總結： 在這個階段，我們用真實的市場數據，從幾個「候選版本」中找出最終的「冠軍版本」。
+
+*實作 Lab：模擬一個從開發、品管到線上測試的完整工作流程*
+現在，讓我們透過為「Aura 智慧香氛機」設計行銷文案這個場景，來走一遍上面提到的完整流程。
+
+*情境*
+我們的目標是為新產品找到最佳的社群媒體文案。團隊已經腦力激盪出三版 Prompts，現在需要透過科學的方法來決定最終要用哪一版。
+
+步驟 1：開發與版本定義 (Development & Version Definition)
+
+這一步對應的是 Prompt 的開發階段。在真實世界中，這三版 Prompt 會被儲存在 LangFuse 或 Pezzo 中進行集中管理，並賦予明確的版本號。
 
 1. v1_baseline (基礎版)
 
@@ -311,80 +330,90 @@ Feature Flag（功能旗標）是一種允許您在不修改程式碼的情況�
 
 - 目的：這是一個更精緻的 prompt，明確定義了角色 (Persona)、上下文 (Context)、任務細節 (Task Specifics) 和輸出格式 (Output Format)，期望能生成質量最高的文案。
 
-步驟 2：用 Feature Flag 實現切換（概念程式碼）
+步驟 2：(模擬) 品質檢驗 (Simulated QA)
+在真實場景中，工程師會用一個包含 50 個不同產品名稱的「黃金測試集」來測試這三版 Prompt。他們可能會得出以下結論：
 
-這裡我們用 Python 偽代碼來展示這個概念。在真實世界中，您可能會使用像 LaunchDarkly、Flagsmith 這樣的 Feature Flag 服務。
+- v1_baseline：輸出品質普通，但格式非常穩定。(通過品管)
+
+- v2_few_shot：風格討喜，但偶爾會模仿範例到忘記產品本身，導致文案不相關。(品管不通過)
+
+- v3_optimized：輸出品質高，且嚴格遵循所有寫作要求，表現最穩定。(通過品管)
+
+基於品管結果，團隊決定淘汰 v2，讓表現穩定的 v1 和 v3 進入下一階段的真人 A/B 測試，來看看用戶到底更喜歡哪一種。
+
+步驟 3：用 Feature Flag 實現線上 A/B 測試 (Implementation)
+
+我們將使用 Python 偽代碼來模擬這個過程。
 
 ```Python
-
 import random
 
-# --- Prompt Repository (可以存在資料庫或設定檔中) ---
-PROMPTS = {
+# --- 步驟 1: 在 Prompt 管理平台 (如 LangFuse/Pezzo) 中定義好的 Prompts ---
+# 在真實應用中，這些內容是透過 API 從 LangFuse/Pezzo 獲取的，而不是寫死在本地。
+PROMPT_REPOSITORY = {
     "v1_baseline": "為「Aura 智慧香氛機」寫一段社群媒體的行銷文案。",
-    "v2_few_shot": """... (省略如上) ...""",
-    "v3_optimized": """... (省略如上) ..."""
+    "v3_optimized": """你是一位頂尖的社群行銷專家... (省略如上) ..."""
 }
 
-# --- Feature Flag 服務的模擬 ---
-# 在真實應用中，這個函式會連接到您的 Feature Flag 服務
-def get_marketing_prompt_version(user_id):
+# --- 步驟 2: 連接 Feature Flag 服務 (如 LaunchDarkly) 來決定使用哪個版本 ---
+# 產品經理可以在 LaunchDarkly 的儀表板上設定 A/B 測試，例如各分配 50% 的流量。
+def get_prompt_version_from_feature_flag(user_id):
     """
-    根據用戶 ID 或其他規則決定使用哪個版本的 Prompt。
-    這裡我們用一個簡單的隨機分配來模擬 A/B 測試。
+    模擬從 LaunchDarkly 獲取決策。
+    這個函式決定了特定用戶應該看到哪個實驗版本。
     """
-    # 假設我們 80% 流量用 baseline，20% 流量測試 optimized
-    if random.random() < 0.8:
-        return "v1_baseline"
+    # 簡單的 50/50 分流邏輯
+    if user_id % 2 == 0:
+        return "v3_optimized"  # 偶數 ID 的用戶看到優化版
     else:
-        # 在真實場景中，這裡可能是 v2 或 v3
-        return "v3_optimized" 
+        return "v1_baseline"   # 奇數 ID 的用戶看到基礎版
 
-# --- 應用程式邏輯 ---
+# --- 應用程式主邏輯 ---
 def generate_product_copy(product_name, user_id):
     """
-    根據 Feature Flag 獲取對應的 Prompt 版本，並生成文案。
+    一個完整的請求流程：
+    1. 詢問 Feature Flag 我該用哪個版本。
+    2. 根據版本號去 Prompt 平台拿對應的 Prompt。
+    3. 執行 Prompt 並返回結果。
     """
-    # 1. 根據 Feature Flag 決定要用哪個版本
-    prompt_version = get_marketing_prompt_version(user_id)
+    # 1. 從 LaunchDarkly 獲取版本決策
+    version_to_use = get_prompt_version_from_feature_flag(user_id)
     
-    # 2. 從我們的 Prompt 庫中獲取 Prompt 內容
-    prompt_template = PROMPTS.get(prompt_version, PROMPTS["v1_baseline"])
+    # 2. 從 LangFuse/Pezzo 獲取對應的 Prompt 內容
+    prompt_template = PROMPT_REPOSITORY.get(version_to_use)
     
-    # 這裡的 prompt_template 已經根據我們的 Feature Flag 規則動態選擇了
-    print(f"--- 正在為 User {user_id} 使用 Prompt 版本: {prompt_version} ---")
+    print(f"--- User {user_id} 正在參與 A/B 測試，分配到的版本是: {version_to_use} ---")
     
     # 3. (模擬) 呼叫 LLM API
     # response = call_llm_api(prompt_template.format(product_name=product_name))
-    # return response
+    # print(response)
     
-    # 為了演示，我們直接返回 prompt 內容
-    return prompt_template
+    return f"用戶看到的文案將由 {version_to_use} 版本生成。"
 
-# --- 模擬不同用戶請求 ---
-user_a = 101
-user_b = 202
 
-print("為 User A 生成文案:")
-copy_for_a = generate_product_copy("Aura 智慧香氛機", user_a)
-# print(copy_for_a) # 在真實應用中，你會看到 LLM 的生成結果
+# --- 模擬兩個不同用戶的請求 ---
+user_a = 101  # 奇數 ID
+user_b = 202  # 偶數 ID
+
+print("處理 User A 的請求:")
+generate_product_copy("Aura 智慧香氛機", user_a)
 
 print("\n" + "="*50 + "\n")
 
-print("為 User B 生成文案:")
-copy_for_b = generate_product_copy("Aura 智慧香氛機", user_b)
-# print(copy_for_b) # 在真實應用中，你會看到 LLM 的生成結果
+print("處理 User B 的請求:")
+generate_product_copy("Aura 智慧香氛機", user_b)
+
 ```
 
 Lab 總結與討論
 
 完成這個 Lab 後，請思考：
 
-1. 比較三版 prompt 可能生成的結果，它們在品質、風格和內容上有何不同？
+1. 我們為什麼在 A/B 測試前要先進行「品質檢驗」？如果直接把 v2_few_shot 版本也加入 A/B 測試，可能會帶來什麼風險？
 
-2. 如果 v3 (優化版) 在線上測試時，發現生成的文案轉換率反而下降了，您會如何利用 Feature Flag 系統快速應對？
+2. 在 A/B 測試進行中，產品經理發現 v3_optimized 版本的轉換率遠超預期。她應該如何使用 Feature Flag 系統來結束實驗，並將 100% 的流量都切換到 v3 版本？這個過程需要工程師介入嗎？
 
-3. 除了 A/B 測試，Feature Flag 在 Prompt 管理上還能帶來哪些好處？（例如：針對 VIP 用戶提供更優質的 prompt 版本）
+3. 請描述在這個完整的流程中，LangFuse (或 Pezzo) 和 LaunchDarkly 是如何協同工作的？它們分別解決了哪個階段的核心問題？
 
 ---
 
