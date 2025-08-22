@@ -82,12 +82,12 @@
 
 👉 用到的模組：Agent 架構、ReAct、工具路由、進階 RAG
 
-學完這些模組，你不只是能做一個聊天機器人，而是能：
+學完這些模組，您不只是能做一個聊天機器人，而是能：
 - 讓 LLM 穩定輸出（可控 / 可驗證）
 - 把 LLM 嵌入不同業務流程（文件、數據、客服、開發）
 - 設計長期可用的框架（成本、觀測、流程管理） <br />
 
-👉 這就是 LLM OS 應用工程師的核心價值：把 LLM 當作「新一代 API」，應用到各種產品與產業場景。
+👉 這就是 LLM OS 應用工程師的核心價值：把 LLM OS 當作「新一代 API」，應用到各種產品與產業場景。
 
 ### 📈 職涯發展路徑
 
@@ -110,114 +110,254 @@
 從「寫 Prompt」升級到「管理 Prompt 資產」
 
 ### 📚 核心內容
+在這個模組中，我們將深入探討如何將 Prompt Engineering 從一門藝術轉化為一門科學。您將學習如何系統化地管理、優化和測試您的 prompts，確保它們在實際應用中能夠發揮最大效用，並為您的產品或服務帶來可預測、可依賴的成果。
 
-#### 1.1 Prompt 版本管理
-```python
-class PromptManager:
-    """企業級 Prompt 管理系統"""
-    def __init__(self):
-        self.versions = {}
-        self.active_version = "v1.0"
-        self.feature_flags = FeatureFlags()
+### 1.1 Prompt 版本管理 (Version Control + Feature Flag)
+為什麼版本管理至關重要？
+
+想像一下，您正在開發一個依賴大型語言模型 (LLM) 的應用程式，例如客服機器人或內容生成工具。您今天覺得某個 prompt 效果很好，就直接上線了。一週後，為了應對新的需求，您修改了這個 prompt，卻發現效果不如預期，甚至引發了新的問題。這時，如果您沒有一個好的版本管理系統，要回退到上一個穩定版本將會非常困難，甚至可能造成線上服務的中斷。
+
+這就是為什麼我們需要將軟體開發中成熟的版本控制概念引入到 Prompt Engineering 中。
+
+#### 1.1.1 版本控制 (Version Control) - 您的 Prompt 安全網
+
+版本控制不僅僅是為 prompt 加上 v1, v2, v3 的標籤。一個成熟的流程應該包含：
+
+集中式管理：將所有 prompts 存放在一個統一的地方，例如 Git Repo、專門的 Prompt 管理平台，或是資料庫中。這樣可以避免團隊成員使用不同步或過時的 prompts。
+
+明確的命名與註釋：
+
+版本號 (Versioning)：遵循語意化版本控制 (Semantic Versioning)，例如 v1.2.1。
+
+主版號 (1.x.x)：當 prompt 的核心邏輯或輸出格式有重大、不相容的改變時更新。
+
+次版號 (x.2.x)：當新增功能或對 prompt 進行了顯著優化，但仍保持向下相容時更新。
+
+修訂號 (x.x.1)：當修正錯字、調整語氣等小幅度的優化時更新。
+
+變更日誌 (Changelog)：詳細記錄每個版本的變更內容、修改原因以及優化效果。這對於團隊協作和未來回溯至關重要。
+
+與程式碼分離：盡量將 prompts 從應用程式的程式碼中抽離出來。這樣一來，非工程師的團隊成員（如產品經理、行銷人員）也可以在不需要重新部署整個應用的情況下，參與 prompts 的迭代與優化。
+
+#### 1.1.2 Feature Flag - 靈活部署與風險控制的利器
+
+Feature Flag（功能旗標）是一種允許您在不修改程式碼的情況下，動態開啟或關閉特定功能的技術。將它應用於 Prompt 管理，能帶來巨大的靈活性和安全性。
+
+動態切換 Prompts：想像您有一個 greeting_prompt。透過 Feature Flag，您可以設定一個參數，讓系統根據不同的條件（例如：使用者地區、會員等級、或是一個開關）來決定要使用 greeting_prompt_v1 還是 greeting_prompt_v2_formal。
+
+灰度發布 (Canary Release)：當您開發了一個全新的、更強大的 prompt v3.0，您可能不想立刻將它推送給所有使用者。利用 Feature Flag，您可以先將 v3.0 開放給 1% 的內部員工或測試用戶，觀察其表現。如果效果良好，再逐步擴大到 5%、20%，最終全面上線。這個過程能大幅降低因新 prompt 表現不佳而導致的大規模負面影響。
+
+緊急回退 (Kill Switch)：如果在全面上線後，發現新版的 prompt 在某些邊界情況下會產生有害或不當的內容，您可以立即透過 Feature Flag 將其關閉，讓系統瞬間切換回上一個穩定的版本，而不需要緊急進行程式碼的重新部署。
+
+### 1.2 核心 Prompt 技術的應用場景 (Few-shot, CoT, ReAct)
+了解了如何管理 prompts 之後，我們來深入探討三種能顯著提升 LLM 表現的核心技術。了解它們各自的適用場景，是成為高級 Prompt Engineer 的關鍵。
+
+#### 1.2.1 Few-shot Learning - 給模型幾個範例，讓它學得更快
+
+核心思想：在您的問題之前，提供幾個完整的「問題-答案」範例。這就像是給模型一個小型的「速成班」，讓它在回答您真正的問題之前，先理解您期望的格式、風格和邏輯。
+
+應用場景：
+
+格式化輸出：當您需要模型以特定的格式（如 JSON、Markdown 表格、特定 XML 結構）回覆時，提供幾個範例是最高效的方式。
+
+特定風格的文本生成：例如，要求模型撰寫一封正式的商業郵件。您可以先提供一兩個符合公司風格的範例郵件，模型就能更好地模仿該語氣和用詞。
+
+複雜分類任務：假設您要將用戶評論分為「正面」、「負面」、「中性」和「建議」。您可以給出幾個典型評論及其分類的範例，幫助模型更精準地進行判斷。
+
+Zero-shot vs. Few-shot：Zero-shot (零樣本) 是指不給任何範例，直接提出問題。當任務非常簡單或模型已經非常熟悉時，可以使用。但只要任務稍微複雜或需要特定格式，Few-shot 的效果通常會遠勝於 Zero-shot。
+
+#### 1.2.2 Chain of Thought (CoT) - 引導模型「思考」而不是「猜測」
+
+核心思想：不僅僅給模型答案，而是向模型展示「如何一步步推導出答案」的思考過程。這會激發模型內部的推理能力，使其在處理複雜問題時，表現得更像一個真正的思考者。
+
+應用場景：
+
+數學與邏輯推理：這是 CoT 最經典的應用。例如，在解決一個數學應用題時，您會先列出已知條件，然後寫下計算步驟，最後得出答案。將這個過程展示給模型，它解決類似問題的準確率會大幅提升。
+
+多步驟指令的任務規劃：例如，「幫我規劃一個週末去陽明山的行程，需要包含午餐地點，並且考慮到下午可能會下雨。」使用 CoT，您可以引導模型先思考：1. 選擇陽明山景點。2. 查詢天氣預報。3. 根據天氣推薦上午的戶外景點和下午的室內備案。4. 推薦午餐地點。
+
+根本原因分析 (Root Cause Analysis)：當面對一個複雜的問題（例如：「為什麼我的電商網站上個月的轉換率下降了？」），您可以透過 CoT 引導模型從數據、市場、產品等多個角度進行逐步分析，而不是直接給出一個猜測性的答案。
+
+#### 1.2.3 ReAct (Reasoning and Acting) - 讓模型成為一個會使用工具的智慧體
+
+核心思想：結合了 CoT 的「思考」(Reasoning) 和與外部工具「互動」(Acting) 的能力。這讓 LLM 不再只是一個封閉的知識庫，而是一個可以主動獲取最新資訊、執行程式碼、與 API 互動的智慧代理 (Agent)。
+
+運作流程：思考 (Thought) -> 行動 (Action) -> 觀察 (Observation) -> 思考 (Thought) ...
+
+應用場景：
+
+需要即時資訊的問答：例如，「Google 最近的股價是多少？並分析一下近期的趨勢。」模型會 思考 到需要查詢股價，於是 行動 (呼叫一個股票查詢 API)，得到 觀察 (股價數據)，然後再 思考 如何基於這些數據進行分析。
+
+與外部服務互動：建立一個能幫您預訂餐廳、查詢訂單狀態或是在您的行事曆上新增活動的 AI 助理。模型會根據您的指令，思考需要呼叫哪個 API (行動)，並根據 API 的回傳結果 (觀察) 進行下一步。
+
+自動化研究與報告生成：給定一個主題，ReAct 框架可以讓模型主動上網搜尋資料 (行動)，閱讀並總結搜尋結果 (觀察 & 思考)，最終生成一份結構完整的報告。
+
+### 1.3 Prompt 測試與 A/B 比較 - 用數據驅動優化
+一個好的 prompt 不是憑感覺想出來的，而是透過嚴謹的測試和數據分析迭代出來的。
+
+#### 1.3.1 建立評估標準 (Evaluation Metrics)
+
+在開始測試前，您必須先定義「好」的標準是什麼。
+
+客觀指標：
+
+準確率 (Accuracy)：對於分類或事實性問答，答案是否正確。
+
+完整性 (Completeness)：回答是否涵蓋了問題的所有方面。
+
+格式符合率 (Format Compliance)：輸出是否嚴格遵守了您要求的格式 (例如，JSON 格式是否合法)。
+
+主觀指標：
+
+流暢度 (Fluency)：文本是否通順、自然。
+
+相關性 (Relevance)：回答是否緊扣主題，沒有無關的廢話。
+
+安全性 (Safety)：是否包含有害、偏見或不當的內容。
+
+業務指標：
+
+轉換率 (Conversion Rate)：行銷文案 prompt 是否提升了點擊率或購買率。
+
+用戶滿意度 (Customer Satisfaction)：客服機器人的 prompt 是否提升了用戶的滿意度分數。
+
+#### 1.3.2 測試方法
+
+黃金測試集 (Golden Set)：建立一個包含數十到數百個具代表性的輸入案例和其對應的「標準答案」的測試集。每當您修改 prompt 後，都用這個測試集來進行回歸測試，確保新的 prompt 沒有在舊的、重要的案例上出錯。
+
+A/B 測試 (A/B Testing)：
+
+這是線上評估 prompt 效果最科學的方法。
+
+將您的用戶流量隨機分成兩組（或多組）。A 組使用舊的 baseline prompt，B 組使用新的優化版 prompt。
+
+運行一段時間後，根據您預先設定的業務指標（如點擊率、用戶留存時間等）來比較哪一組的表現更好。
+
+A/B 測試的結果是最有說服力的，因為它反映了 prompt 在真實世界中的真實表現。
+
+實作 Lab：建立三版 Prompt，用 Feature Flag 動態切換
+目標：模擬一個為電商產品生成簡短行銷文案的場景，並體驗如何透過 Feature Flag 在不同版本的 Prompt 之間進行切換。
+
+場景：我們需要為一個名為「Aura 智慧香氛機」的產品生成一段吸引人的社群媒體貼文。
+
+步驟 1：定義三版 Prompts
+
+v1_baseline (基礎版)
+
+Prompt: "為「Aura 智慧香氛機」寫一段社群媒體的行銷文案。"
+
+目的：這是一個最簡單、最直接的 prompt，作為我們比較的基準。
+
+v2_few_shot (範例學習版)
+
+Prompt:
+
+為產品寫一段吸引人的社群媒體行銷文案。
+
+範例1：
+產品：SleekPods 無線藍牙耳機
+文案：🎶 告別纏線，擁抱自由！SleekPods 帶來沉浸式音質與全天候舒適配戴感。#無線自由 #音樂隨行
+
+範例2：
+產品：Zenith 手沖咖啡壺
+文案：☕️ 每個早晨，都值得一杯完美的咖啡。Zenith 手沖咖啡壺，精準溫控，釋放咖啡豆的極致風味。#手沖咖啡 #生活美學
+
+現在，請為「Aura 智慧香氛機」寫一段社群媒體的行銷文案。
+目的：使用 Few-shot learning，提供範例來引導模型生成包含 Emoji 和 Hashtag 的、更符合社群媒體風格的文案。
+
+v3_optimized (優化版)
+
+Prompt:
+
+你是一位頂尖的社群行銷專家。你的任務是為新產品「Aura 智慧香氛機」撰寫一段引人入勝、不超過150字的 Instagram 貼文。
+
+**產品核心賣點**:
+1.  可透過 App 遠端遙控，並設定排程。
+2.  能與智慧家庭系統（如 Google Home）連動。
+3.  使用天然植物精油，安靜運作。
+
+**寫作要求**:
+- 開頭要能立刻抓住眼球。
+- 文案中需自然地融入至少兩個核心賣點。
+- 語氣需溫暖、有質感，能喚起放鬆和科技感。
+- 結尾必須包含一個行動呼籲 (Call to Action)。
+- 最後附上 3-4 個相關的 Hashtag。
+目的：這是一個更精緻的 prompt，明確定義了角色 (Persona)、上下文 (Context)、任務細節 (Task Specifics) 和輸出格式 (Output Format)，期望能生成質量最高的文案。
+
+步驟 2：用 Feature Flag 實現切換（概念程式碼）
+
+這裡我們用 Python 偽代碼來展示這個概念。在真實世界中，您可能會使用像 LaunchDarkly、Flagsmith 這樣的 Feature Flag 服務。
+
+Python
+
+import random
+
+# --- Prompt Repository (可以存在資料庫或設定檔中) ---
+PROMPTS = {
+    "v1_baseline": "為「Aura 智慧香氛機」寫一段社群媒體的行銷文案。",
+    "v2_few_shot": """... (省略如上) ...""",
+    "v3_optimized": """... (省略如上) ..."""
+}
+
+# --- Feature Flag 服務的模擬 ---
+# 在真實應用中，這個函式會連接到您的 Feature Flag 服務
+def get_marketing_prompt_version(user_id):
+    """
+    根據用戶 ID 或其他規則決定使用哪個版本的 Prompt。
+    這裡我們用一個簡單的隨機分配來模擬 A/B 測試。
+    """
+    # 假設我們 80% 流量用 baseline，20% 流量測試 optimized
+    if random.random() < 0.8:
+        return "v1_baseline"
+    else:
+        # 在真實場景中，這裡可能是 v2 或 v3
+        return "v3_optimized" 
+
+# --- 應用程式邏輯 ---
+def generate_product_copy(product_name, user_id):
+    """
+    根據 Feature Flag 獲取對應的 Prompt 版本，並生成文案。
+    """
+    # 1. 根據 Feature Flag 決定要用哪個版本
+    prompt_version = get_marketing_prompt_version(user_id)
     
-    def register_prompt(self, name, version, prompt_template):
-        """註冊新版本的 Prompt"""
-        key = f"{name}_{version}"
-        self.versions[key] = {
-            "template": prompt_template,
-            "created_at": datetime.now(),
-            "metrics": {"success_rate": 0, "avg_tokens": 0}
-        }
+    # 2. 從我們的 Prompt 庫中獲取 Prompt 內容
+    prompt_template = PROMPTS.get(prompt_version, PROMPTS["v1_baseline"])
     
-    def get_prompt(self, name, user_id=None):
-        """根據 Feature Flag 返回對應版本"""
-        if self.feature_flags.is_enabled("new_prompt_v2", user_id):
-            return self.versions[f"{name}_v2.0"]["template"]
-        return self.versions[f"{name}_{self.active_version}"]["template"]
-```
-
-#### 1.2 進階 Prompt 技巧對比
-
-| 技巧 | 使用場景 | 優點 | 缺點 | 成本 |
-|---|---|---|---|---|
-| **Zero-shot** | 簡單任務 | 快速、便宜 | 不穩定 | 💰 |
-| **Few-shot** | 格式化輸出 | 穩定性提升 | Token 消耗多 | 💰💰 |
-| **Chain-of-Thought** | 複雜推理 | 準確度高 | 延遲增加 | 💰💰💰 |
-| **ReAct** | 多步驟任務 | 可解釋性強 | 實作複雜 | 💰💰💰💰 |
-
-### 🔬 Lab 實作：三版 Prompt 比較
-
-```python
-# Lab: A/B/C 測試不同 Prompt 策略
-class PromptExperiment:
-    def __init__(self):
-        self.prompts = {
-            "baseline": """
-                分析這則客戶評論的情緒：{review}
-                輸出：positive/negative/neutral
-            """,
-            
-            "few_shot": """
-                分析客戶評論的情緒。
-                
-                範例：
-                - "產品很棒，物超所值！" → positive
-                - "完全不值這個價錢" → negative
-                - "普通，沒什麼特別" → neutral
-                
-                現在分析：{review}
-                輸出：positive/negative/neutral
-            """,
-            
-            "cot_optimized": """
-                分析這則客戶評論：{review}
-                
-                思考步驟：
-                1. 識別情緒詞彙（正面/負面/中性）
-                2. 評估整體語氣
-                3. 考慮上下文和反諷
-                4. 綜合判斷
-                
-                基於以上分析，情緒是：positive/negative/neutral
-            """
-        }
-        
-        self.feature_flags = FeatureFlags()
+    # 這裡的 prompt_template 已經根據我們的 Feature Flag 規則動態選擇了
+    print(f"--- 正在為 User {user_id} 使用 Prompt 版本: {prompt_version} ---")
     
-    def run_experiment(self, review, user_id):
-        # 根據 Feature Flag 選擇版本
-        version = self.feature_flags.get_variant("sentiment_prompt", user_id)
-        prompt = self.prompts[version].format(review=review)
-        
-        # 執行並記錄metrics
-        start_time = time.time()
-        result = llm.complete(prompt)
-        latency = time.time() - start_time
-        
-        # 記錄實驗數據
-        self.log_metrics(version, result, latency)
-        return result
-
-# 實際測試
-experiment = PromptExperiment()
-reviews = [
-    "爛透了，完全是詐騙！",
-    "還行吧，不過價格有點貴",
-    "超級推薦！改變了我的生活！"
-]
-
-for review in reviews:
-    results = {}
-    for version in ["baseline", "few_shot", "cot_optimized"]:
-        results[version] = experiment.run_experiment(review, f"test_user_{version}")
+    # 3. (模擬) 呼叫 LLM API
+    # response = call_llm_api(prompt_template.format(product_name=product_name))
+    # return response
     
-    print(f"Review: {review}")
-    print(f"Results: {results}")
-    print(f"一致性: {len(set(results.values())) == 1}")
-```
+    # 為了演示，我們直接返回 prompt 內容
+    return prompt_template
 
-### 💡 實戰心得
-> ⚠️ **常見錯誤**：過度優化 Prompt，忽略了成本和延遲。記住：Few-shot 不一定比 Zero-shot 好，要看具體場景。
+
+# --- 模擬不同用戶請求 ---
+user_a = 101
+user_b = 202
+
+print("為 User A 生成文案:")
+copy_for_a = generate_product_copy("Aura 智慧香氛機", user_a)
+# print(copy_for_a) # 在真實應用中，你會看到 LLM 的生成結果
+
+print("\n" + "="*50 + "\n")
+
+print("為 User B 生成文案:")
+copy_for_b = generate_product_copy("Aura 智慧香氛機", user_b)
+# print(copy_for_b) # 在真實應用中，你會看到 LLM 的生成結果
+
+Lab 總結與討論
+
+完成這個 Lab 後，請思考：
+
+比較三版 prompt 可能生成的結果，它們在品質、風格和內容上有何不同？
+
+如果 v3 (優化版) 在線上測試時，發現生成的文案轉換率反而下降了，您會如何利用 Feature Flag 系統快速應對？
+
+除了 A/B 測試，Feature Flag 在 Prompt 管理上還能帶來哪些好處？（例如：針對 VIP 用戶提供更優質的 prompt 版本）
 
 ---
 
