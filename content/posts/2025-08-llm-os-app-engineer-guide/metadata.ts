@@ -5,7 +5,7 @@ const metadata: PostMeta = {
   title: "🚀 成為 LLM OS 應用工程師：從 Bot 到 Agent 的開發實戰指南",
   date: "2025-08-22",
   summary:
-    "深入探討如何成為能獨立開發 LLM 應用的工程師。從 Prompt 管理到產品上線，涵蓋 8 個核心模組與實戰專題，讓你掌握 Bot、Copilot、Agent 開發的完整技能，成為市場急需的 LLM 應用工程師。",
+    "深入探討如何成為能獨立開發 LLM OS 應用的工程師。從 Prompt 管理到產品上線，涵蓋 8 個核心模組與實戰專題，讓你掌握 Bot、Copilot、Agent 開發的完整技能，成為市場急需的 LLM OS 應用工程師。",
   tags: [
     "LLM OS",
     "應用工程師",
