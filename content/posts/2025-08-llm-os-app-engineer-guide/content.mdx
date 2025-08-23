@@ -420,250 +420,297 @@ Lab 總結與討論
 ## 📘 模組 2：LLM API 與 UX 整合（第 2 週）
 
 ### 🎯 學習目標
-掌握三種 API 模式和對應的 UX 設計模式
+本模組將帶領學員跨越單純的 Prompt Engineering，進入應用開發的實務層面。學員將學習如何根據不同的使用者情境，選擇最適合的 API 呼叫模式，並設計出符合使用者直覺的對話體驗。最後，我們將探討如何建立一道「信任層」，確保從 LLM 獲得的輸出是可控、可靠且能被後端系統使用的。
 
 ### 📚 核心內容
 
-#### 2.1 API 呼叫模式深度解析
+### **2.1 LLM API 呼叫模式 (API Call Patterns)**
 
-```python
-class LLMAPIPatterns:
-    """三種 API 模式的最佳實踐"""
-    
-    @staticmethod
-    def completion_mode(prompt):
-        """補全模式：適合單次生成"""
-        response = openai.Completion.create(
-            model="text-davinci-003",
-            prompt=prompt,
-            max_tokens=150,
-            temperature=0.7
-        )
-        return response.choices[0].text
-    
-    @staticmethod
-    def chat_mode(messages):
-        """對話模式：適合多輪交互"""
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=messages,  # [{"role": "user", "content": "..."}]
-            temperature=0.7
-        )
-        return response.choices[0].message.content
-    
-    @staticmethod
-    async def streaming_mode(prompt, callback):
-        """串流模式：適合即時回饋"""
-        stream = await openai.ChatCompletion.acreate(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            stream=True
-        )
-        
-        full_response = ""
-        async for chunk in stream:
-            if chunk.choices[0].delta.content:
-                content = chunk.choices[0].delta.content
-                full_response += content
-                await callback(content)  # 即時顯示
-        
-        return full_response
-```
+**核心問題：** 我們該如何與 LLM API 溝通？不同的溝通方式會如何影響應⽤的效能和使⽤者體驗？
 
-#### 2.2 三種對話 UX 模式實戰
+#### **2.1.1 Completion 模式（一次性完成模式）**
 
-```python
-class ConversationUX:
-    """對話 UX 的三種核心模式"""
+- **定義：** 這是最基礎的互動模式。你送出一個完整的提示 (Prompt)，API 回傳一個完整的答案。這是一種「一次性請求-回應」的無狀態 (Stateless) 互動。
     
-    def command_mode(self, user_input):
-        """
-        Command 模式：用戶下指令，系統執行
-        適合：明確任務、單次操作
-        """
-        # 範例：/translate <text> to <language>
-        if user_input.startswith("/translate"):
-            _, text, _, language = user_input.split()
-            return self.execute_translation(text, language)
+- **比喻：** 就像寫一封 Email，你把所有問題寫完寄出，然後等待對方完整的回覆。
     
-    def clarification_mode(self, user_input, context):
-        """
-        Clarification 模式：系統主動詢問，澄清需求
-        適合：複雜任務、模糊指令
-        """
-        ambiguity_score = self.detect_ambiguity(user_input)
-        
-        if ambiguity_score > 0.7:
-            clarifying_questions = [
-                "您是指 A 還是 B？",
-                "需要包含 X 嗎？",
-                "時間範圍是？"
-            ]
-            return {"needs_clarification": True, "questions": clarifying_questions}
-        
-        return {"needs_clarification": False, "response": self.process(user_input)}
+- **優點：**
     
-    def suggestion_mode(self, user_input, history):
-        """
-        Suggestion 模式：系統提供建議選項
-        適合：探索性任務、新手引導
-        """
-        response = self.generate_response(user_input)
+    - 實作簡單、直觀。
         
-        # 智慧建議下一步
-        suggestions = [
-            "📊 查看詳細數據",
-            "📧 發送報告",
-            "🔄 修改參數重試"
-        ]
+    - 適合不需要上下文記憶的單次任務。
         
-        return {
-            "response": response,
-            "suggestions": suggestions,
-            "quick_actions": self.generate_quick_actions(context=history)
-        }
-```
+- **適用情境：**
+    
+    - **內容生成：** 寫一篇文章、產生一首詩、草擬一封郵件。
+        
+    - **文本摘要：** 給定一篇文章，生成其摘要。
+        
+    - **簡單問答：** 「法國的首都是哪裡？」
+        
+- **範例程式碼 (概念)：**
+       
+    ```python
+    response = llm.complete(
+        prompt="請為一家新開的咖啡店想三個有創意的名字。"
+    )
+    print(response.text)
+    # >> 1. 啡語流光 2. 城市焙思 3. 滴答手沖
+    ```
+    
 
-#### 2.3 信任層設計（關鍵但常被忽略）
+#### **2.1.2 Chat 模式（對話模式）**
 
-```python
-class OutputValidator:
-    """LLM 輸出的信任層"""
+- **定義：** 專為多輪對話設計的模式。API 不只接收當前的問題，還會接收過去的對話歷史紀錄。這是一種有狀態 (Stateful) 的互動。
     
-    def __init__(self):
-        self.validators = {
-            "email": re.compile(r'^[\w\.-]+@[\w\.-]+\.\w+$'),
-            "phone": re.compile(r'^\+?1?\d{9,15}$'),
-            "json": self.validate_json,
-            "sql": self.validate_sql_safety
-        }
+- **比喻：** 就像使用 LINE 或 Messenger，每一句話都建立在前文的基礎上，形成連續的對話。
     
-    def validate_json(self, output):
-        """JSON 格式驗證"""
-        try:
-            parsed = json.loads(output)
-            # 額外的 schema 驗證
-            return jsonschema.validate(parsed, self.schema)
-        except:
-            return False
+- **關鍵概念：**
     
-    def validate_sql_safety(self, sql):
-        """SQL 安全性檢查"""
-        dangerous_keywords = ['DROP', 'DELETE', 'TRUNCATE', 'ALTER']
-        sql_upper = sql.upper()
+    - **角色 (Roles)：** 通常包含 `system` (設定 AI 的行為準則)、`user` (使用者輸入)、`assistant` (AI 的回覆)。
         
-        for keyword in dangerous_keywords:
-            if keyword in sql_upper:
-                raise SecurityError(f"Dangerous SQL detected: {keyword}")
+    - **對話歷史 (History)：** 每次請求都必須附上之前的對話內容，AI 才能「記住」上下文。
         
-        return True
+- **優點：**
     
-    def validate_and_fix(self, output, output_type):
-        """驗證並嘗試修復"""
-        if output_type not in self.validators:
-            return output
+    - 能處理複雜、有上下文關聯的任務。
         
-        validator = self.validators[output_type]
+    - 提供更自然、更具互動性的使用者體驗。
         
-        if isinstance(validator, re.Pattern):
-            if not validator.match(output):
-                # 嘗試修復（例如：提取 email）
-                fixed = self.extract_pattern(output, validator)
-                if fixed:
-                    return fixed
-                raise ValidationError(f"Invalid {output_type}: {output}")
-        else:
-            # 函數驗證器
-            if not validator(output):
-                raise ValidationError(f"Validation failed for {output_type}")
+- **適用情境：**
+    
+    - **聊天機器人 (Chatbot)：** 客服、個人助理。
         
-        return output
-```
+    - **逐步引導任務：** 「幫我規劃一趟去東京的五日遊。」 -> 「第一天想去哪些地方？」
+        
+    - **程式碼協作：** 「寫一個 Python 函式...」 -> 「不錯，現在幫我加上錯誤處理。」
+        
+- **範例程式碼 (概念)：**
+    
+    ```python
+    messages = [
+        {"role": "system", "content": "你是一位友善的旅遊規劃助理。"},
+        {"role": "user", "content": "我想去一個溫暖的海島國家，有推薦嗎？"},
+        {"role": "assistant", "content": "當然！泰國的普吉島和印尼的峇里島都是很棒的選擇，您對哪個比較感興趣呢？"},
+        {"role": "user", "content": "那先介紹一下峇里島吧。"}
+    ]
+    response = llm.chat(messages=messages)
+    print(response.text)
+    ```
+    
 
-### 🔬 Lab 實作：智慧客服 Bot 三種模式
+#### **2.1.3 Streaming 模式（串流模式）**
 
-```python
-# Lab: 實作一個支援三種 UX 模式的客服 Bot
-class SmartCustomerServiceBot:
-    def __init__(self):
-        self.mode = "auto"  # auto, command, clarify, suggest
-        self.validator = OutputValidator()
-        self.context_manager = ContextManager()
+- **定義：** API 不會等所有內容生成完畢才一次性回傳，而是以「字詞」或「Token」為單位，即時、逐字地將結果串流回客戶端。
     
-    async def handle_message(self, message, user_id):
-        # 1. 模式判斷
-        if message.startswith("/"):
-            return await self.handle_command(message)
-        
-        # 2. 模糊度分析
-        ambiguity = self.analyze_ambiguity(message)
-        if ambiguity > 0.6:
-            return await self.handle_clarification(message)
-        
-        # 3. 一般處理 + 建議
-        response = await self.generate_response(message)
-        suggestions = self.generate_suggestions(message, response)
-        
-        return {
-            "mode": "suggestion",
-            "response": response,
-            "suggestions": suggestions,
-            "typing_time": self.calculate_typing_time(response)
-        }
+- **比喻：** 像是觀看 YouTube 直播，畫面是即時傳送過來的，而不是等整部影片下載完才播放。也像看著真人在打字，一個字一個字出現。
     
-    async def handle_command(self, command):
-        """Command 模式處理"""
-        parts = command.split()
-        cmd = parts[0]
-        
-        commands = {
-            "/status": self.check_order_status,
-            "/refund": self.process_refund,
-            "/escalate": self.escalate_to_human
-        }
-        
-        if cmd in commands:
-            return await commands[cmd](parts[1:])
-        
-        return "Unknown command. Type /help for available commands."
+- **優點：**
     
-    async def handle_clarification(self, message):
-        """Clarification 模式處理"""
-        # 智慧問題生成
-        questions = self.generate_clarifying_questions(message)
+    - **大幅降低感知延遲 (Perceived Latency)：** 使用者幾乎立刻就能看到回應，避免了漫長的等待焦慮。
         
-        return {
-            "mode": "clarification",
-            "message": "我需要更多資訊來幫助您：",
-            "questions": questions,
-            "quick_replies": [q["short"] for q in questions]
-        }
+    - **提升互動感：** 感覺更像在與一個「正在思考並回應」的對象交流。
+        
+- **適用情境：**
     
-    def calculate_typing_time(self, response):
-        """模擬真人打字時間"""
-        words = len(response.split())
-        # 假設打字速度：40 words/min
-        return min(max(words / 40 * 60 * 1000, 1000), 5000)  # 1-5秒
+    - 所有需要即時互動的 Chat 應用。
+        
+    - 生成長文或程式碼時，讓使用者能先看到開頭部分。
+        
+- **挑戰：** 前端需要實作對應的邏輯來接收和拼接這些串流的字塊。
+    
 
-# 實際測試
-bot = SmartCustomerServiceBot()
+|模式|核心概念|使用者體驗|適用場景|
+|---|---|---|---|
+|**Completion**|一問一答，無記憶|快速直接，但生硬|內容總結、文案生成|
+|**Chat**|多輪對話，有記憶|自然流暢，具互動性|客服、虛擬助理、教學|
+|**Streaming**|即時逐字回傳|低延遲、高互動感|所有對話式應用|
 
-test_messages = [
-    "/status ORDER123",  # Command mode
-    "我的訂單怎麼了",     # Clarification mode
-    "我要退貨，產品有問題" # Suggestion mode
-]
+---
 
-for msg in test_messages:
-    result = await bot.handle_message(msg, "user_123")
-    print(f"Input: {msg}")
-    print(f"Mode: {result.get('mode', 'default')}")
-    print(f"Response: {result}")
-    print("-" * 50)
-```
+### **2.2 三種對話 UX 模式 (Conversational UX Patterns)**
 
-### 💡 實戰心得
-> 🎯 **Pro Tip**：不要一開始就用 Streaming。先用 Completion 模式驗證邏輯，穩定後再升級到 Streaming 改善體驗。
+**核心問題：** 我們該如何設計對話的「流程」，讓使用者覺得 AI 是聰明且有幫助的？
+
+#### **2.2.1 Command 模式（命令模式）**
+
+- **定義：** 使用者給出明確、具體的指令，期望 AI 直接執行並給出結果。
+    
+- **互動心態：** 使用者把 AI 當作一個「高效率的工具」。
+    
+- **設計重點：**
+    
+    - **意圖辨識要精準：** AI 必須準確理解使用者的指令。
+        
+    - **回應要簡潔：** 直接給出答案或確認執行的結果，不多廢話。
+        
+- **範例：**
+    
+    - 使用者：「幫我設定明天早上 7 點的鬧鐘。」 -> AI：「好的，已設定明天早上 7 點的鬧鐘。」
+        
+    - 使用者：「查詢訂單 `A12345678` 的狀態。」 -> AI：「訂單 `A12345678` 目前狀態為：已出貨。」
+        
+
+#### **2.2.2 Clarification 模式（澄清模式）**
+
+- **定義：** 當使用者的指令模糊或資訊不足時，AI 主動提出問題，以澄清意圖、補足資訊。
+    
+- **互動心態：** 使用者把 AI 當作一個「細心的夥伴」。
+    
+- **設計重點：**
+    
+    - **識別模糊地帶：** 知道何時該問問題，而不是猜測或直接拒絕。
+        
+    - **提問要聰明：** 提出的問題應該是關鍵性的，最好提供選項。
+        
+- **範例：**
+    
+    - 使用者：「幫我訂一張去東京的機票。」
+        
+    - AI (澄清)：「好的，請問您預計的出發日期是什麼時候呢？」
+        
+    - 使用者：「我想退貨。」
+        
+    - AI (澄清)：「沒問題，請問您想退貨的是哪一筆訂單呢？可以提供訂單編號嗎？」
+        
+
+#### **2.2.3 Suggestion 模式（建議模式）**
+
+- **定義：** AI 在完成使用者的指令後，基於上下文，主動提供相關的、可能有幫助的建議或下一步操作。
+    
+- **互動心態：** 使用者把 AI 當作一個「有遠見的專家」。
+    
+- **設計重點：**
+    
+    - **建議要相關：** 提供的建議必須與當前對話高度相關。
+        
+    - **時機要恰當：** 在使用者完成一個主要任務節點後提出，避免打斷流程。
+        
+    - **不要強迫：** 以提議的口吻呈現，讓使用者可以輕鬆接受或拒絕。
+        
+- **範例：**
+    
+    - AI：「您的訂單 `A12345678` 已成功取消並辦理退款。」
+        
+    - AI (建議)：「很高興為您服務。順帶一提，您上次購買的《原子習慣》同系列作者有本新書《高效人士的七個習慣》，需要為您介紹嗎？」
+        
+    - 使用者：「幫我查一下台北今天的天氣。」
+        
+    - AI：「台北今天天氣晴朗，氣溫 28-34 度。」
+        
+    - AI (建議)：「天氣炎熱，提醒您多補充水分。需要幫您查詢附近的飲料店嗎？」
+        
+
+---
+
+### **2.3 API 輸出信任層 (API Output Trust Layer)**
+
+**核心問題：** LLM 的輸出是不確定的，有時甚至是「胡說八道」或格式錯誤。如何確保我們從 API 得到的結果是結構化、可靠、且能被程式其他部分安全使用的？
+
+這一層是介於「LLM 原始輸出」和「你的應用程式邏輯」之間的**防護網**和**格式轉換器**。
+
+#### **2.3.1 正則表達式 (Regular Expressions)**
+
+- **用途：** 當你需要從 LLM 回傳的一段自然語言文字中，**抽取**出特定格式的簡單資訊時。
+    
+- **範例：**
+    
+    - **任務：** 從「我的訂單編號是 `ORD-2025-08-23-001`，請幫我查詢。」中提取訂單編號。
+        
+    - **作法：** 使用正則表達式 `ORD-\d{4}-\d{2}-\d{2}-\d{3}` 來匹配並抽取出 `ORD-2025-08-23-001`。
+        
+- **優點：** 快速、輕量，適合處理格式固定的簡單字串。
+    
+- **缺點：** 對於複雜的巢狀結構（如 JSON）無能為力，且規則寫起來較為繁瑣。
+    
+
+#### **2.3.2 Schema Validation (結構化驗證)**
+
+- **用途：** 當你要求 LLM 輸出一種**複雜的、結構化的資料**（最常見的是 JSON），用以驗證其格式是否完全符合預期。
+    
+- **核心流程：**
+    
+    1. **定義 Schema：** 在 Prompt 中，明確指示 LLM 必須以 JSON 格式回覆，並提供 JSON 的結構範例。
+        
+    2. **LLM 輸出：** LLM 嘗試生成符合要求的 JSON 字串。
+        
+    3. **解析與驗證：** 你的程式碼先嘗試將 LLM 回傳的字串 `JSON.parse()`。成功後，再用一個預先定義好的 Schema（例如 Pydantic、JSON Schema）去驗證這個 JSON 物件的欄位、型別是否都正確。
+        
+    4. **重試機制：** 如果驗證失敗，可以將錯誤訊息連同原始請求再次發送給 LLM，要求它「修正錯誤並重新輸出」。
+        
+- **範例：**
+    
+    - **任務：** 從「幫我預約一位叫 John Doe 的客戶，電話是 0912-345-678，時間是明天下午 3 點」中提取預約資訊。
+        
+    - **Schema (Pydantic)：**
+        
+        ```python
+        from pydantic import BaseModel
+        class Appointment(BaseModel):
+            name: str
+            phone: str
+            time: str
+        ```
+        
+    - **驗證：** 程式會檢查 LLM 的輸出是否包含 `name`, `phone`, `time` 三個欄位，且其值是否為字串。
+        
+- **進階概念：** 現代的 LLM API（如 OpenAI 的 Function Calling）已經內建了類似的功能，能更可靠地強制 LLM 輸出符合特定結構的 JSON，這是 Schema Validation 的更穩健實踐。
+    
+
+---
+
+### **Lab：做一個客服 Bot，測試三種 UX 模式**
+
+**目標：** 綜合運用本模組所學，為一個虛構的電商平台「智慧小舖」打造一個多功能客服 Bot。
+
+**場景設定：**
+
+1. **Command 模式實作：查詢訂單**
+    
+    - **使用者輸入：** 「幫我查訂單 `S20250823001`」
+        
+    - **Bot 任務：**
+        
+        1. 使用**正則表達式**從使用者輸入中準確提取訂單編號。
+            
+        2. 呼叫一個假的後端函式 `getOrderStatus(orderId)`。
+            
+        3. 回傳訂單狀態，例如：「您好，訂單 `S20250823001` 的狀態是【已出貨】，預計 2 天內送達。」
+            
+    - **學習重點：** 指令理解、資訊抽取 (正則)。
+        
+2. **Clarification 模式實作：申請退貨**
+    
+    - **使用者輸入：** 「我想要退貨。」
+        
+    - **Bot 任務：**
+        
+        1. 辨識到使用者的意圖是「退貨」，但缺少關鍵資訊「訂單編號」。
+            
+        2. 進入 **Chat 模式**，發起澄清式提問：「好的，請問您要申請退貨的訂單編號是？」。
+            
+        3. 使用者提供編號後，Bot 再繼續後續流程。
+            
+    - **學習重點：** 模糊意圖處理、多輪對話 (Chat 模式)、狀態管理。
+        
+3. **Suggestion 模式實作：智慧推薦**
+    
+    - **情境接續：** 在使用者成功查詢完一筆「已完成」的訂單後（例如訂單內容是購買了一本《AI 技術的未來》）。
+        
+    - **Bot 任務：**
+        
+        1. 完成主要任務：「您的訂單 `S20250823001` 已於 8 月 20 日順利送達。」
+            
+        2. 觸發建議模式：「看到您對 AI 主題感興趣，我們最近剛上架一本新書《大型語言模型入門與實踐》，許多讀者反應熱烈，需要為您加入購物車嗎？」
+            
+    - **學習重點：** 上下文感知、主動服務、提升使用者價值。
+        
+
+**進階挑戰 (Bonus)：**
+
+- 將 Bot 的所有回覆都改為 **Streaming 模式**，讓使用者能即時看到 Bot 的打字效果，提升互動體驗。
+    
+- 在處理使用者退貨請求時，要求 LLM 將退貨原因和訂單編號整理成一個固定的 JSON 格式，並用 **Schema Validation** 進行驗證，驗證通過後才模擬呼叫後端 API。
 
 ---
 
