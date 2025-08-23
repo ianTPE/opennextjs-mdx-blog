@@ -717,680 +717,468 @@ Lab 總結與討論
 ## 📘 模組 3：Context Engineering 必修基礎（第 3 週）
 
 ### 🎯 學習目標
-理解並管理 LLM 的「記憶系統」——這是系統工程師的必修簡化版
+在本單元中，我們將深入探討大型語言模型（LLM）的「大腦」是如何運作的——也就是 **Context（上下文）**。Context 是我們與 LLM 溝通時提供給它的所有資訊，它直接決定了模型的回應品質。學會如何設計與管理 Context，是打造一個聰明、可靠 AI 應用的基礎。我們將學習如何區分不同類型的 Prompt，理解模型的記憶限制，並掌握管理長期與短期記憶的關鍵策略。
 
 ### 📚 核心內容
 
-#### 3.1 三層記憶架構
+#### **3.1 System Prompt vs User Prompt vs Memory**
 
-```python
-class MemoryArchitecture:
-    """LLM 應用的記憶管理系統"""
-    
-    def __init__(self):
-        # 三層記憶體系
-        self.system_prompt = SystemPrompt()      # 長期記憶（不變）
-        self.user_context = UserContext()        # 中期記憶（session）
-        self.conversation = ConversationBuffer() # 短期記憶（對話）
-        
-        # Token 預算管理
-        self.token_budget = {
-            "system": 1000,      # 系統提示
-            "context": 2000,     # 用戶上下文
-            "conversation": 5000, # 對話歷史
-            "response": 1000     # 預留給回應
-        }
-    
-    def build_context(self, user_input):
-        """構建完整上下文"""
-        # 1. 計算各部分 token
-        system_tokens = self.count_tokens(self.system_prompt.get())
-        
-        # 2. 動態調整空間分配
-        remaining = 8000 - system_tokens - 1000  # 總共 8K，預留 1K
-        
-        # 3. 智慧壓縮
-        context = {
-            "system": self.system_prompt.get(),
-            "user_context": self.compress_context(
-                self.user_context.get(), 
-                max_tokens=remaining * 0.3
-            ),
-            "conversation": self.compress_conversation(
-                self.conversation.get(),
-                max_tokens=remaining * 0.7
-            ),
-            "current_input": user_input
-        }
-        
-        return self.format_context(context)
-```
+要讓 LLM 表現得像個專家，我們必須學會扮演好「導演」的角色。提供給模型的 Context 主要由這三部分組成，它們各自扮演著不同的角色：
 
-#### 3.2 Context 壓縮策略
-
-```python
-class ContextCompressor:
-    """上下文壓縮器"""
+- **System Prompt（系統提示詞）：AI 的「角色設定」與「核心指令」**
     
-    def __init__(self):
-        self.strategies = {
-            "summarization": self.summarize,
-            "sliding_window": self.sliding_window,
-            "importance_sampling": self.importance_sampling
-        }
-    
-    def summarize(self, messages, max_tokens):
-        """摘要壓縮：適合長對話"""
-        if self.count_tokens(messages) <= max_tokens:
-            return messages
+    - **定義**：這是我們在對話開始前，預先給予 LLM 的最高層級指令。它定義了 AI 的 **人格、角色、行為準則、技能、以及最終目標**。你可以把它想像成是為一位演員寫的「角色劇本」，或者是一個程式的「核心設定檔」。
         
-        # 分組摘要
-        chunks = self.chunk_messages(messages, chunk_size=10)
-        summaries = []
+    - **作用**：
         
-        for chunk in chunks[:-1]:  # 保留最新的不摘要
-            summary = llm.complete(f"Summarize: {chunk}", max_tokens=100)
-            summaries.append({
-                "role": "system",
-                "content": f"[Earlier conversation summary]: {summary}"
-            })
-        
-        # 保留最新消息原文
-        return summaries + chunks[-1]
-    
-    def sliding_window(self, messages, max_tokens):
-        """滑動窗口：保留最近 N 條"""
-        total_tokens = 0
-        kept_messages = []
-        
-        # 從最新的開始保留
-        for msg in reversed(messages):
-            msg_tokens = self.count_tokens(msg)
-            if total_tokens + msg_tokens <= max_tokens:
-                kept_messages.insert(0, msg)
-                total_tokens += msg_tokens
-            else:
-                break
-        
-        # 加入摘要提示
-        if len(kept_messages) < len(messages):
-            kept_messages.insert(0, {
-                "role": "system",
-                "content": f"[{len(messages) - len(kept_messages)} earlier messages omitted]"
-            })
-        
-        return kept_messages
-    
-    def importance_sampling(self, messages, max_tokens):
-        """重要性採樣：保留關鍵訊息"""
-        # 計算每條訊息的重要性分數
-        scored_messages = []
-        for msg in messages:
-            score = self.calculate_importance(msg)
-            scored_messages.append((score, msg))
-        
-        # 排序並選擇
-        scored_messages.sort(reverse=True)
-        selected = []
-        total_tokens = 0
-        
-        for score, msg in scored_messages:
-            msg_tokens = self.count_tokens(msg)
-            if total_tokens + msg_tokens <= max_tokens:
-                selected.append(msg)
-                total_tokens += msg_tokens
-        
-        # 保持時間順序
-        return sorted(selected, key=lambda m: messages.index(m))
-    
-    def calculate_importance(self, message):
-        """計算訊息重要性"""
-        score = 0.0
-        
-        # 關鍵詞權重
-        keywords = ["決定", "重要", "問題", "錯誤", "確認"]
-        for keyword in keywords:
-            if keyword in message.get("content", ""):
-                score += 0.2
-        
-        # 用戶訊息權重更高
-        if message.get("role") == "user":
-            score += 0.3
-        
-        # 長度懲罰（太長的可能是廢話）
-        length = len(message.get("content", ""))
-        if length > 500:
-            score -= 0.1
-        
-        # 時間衰減
-        # score *= time_decay_factor
-        
-        return score
-```
-
-#### 3.3 記憶管理實戰
-
-```python
-class ConversationMemoryManager:
-    """對話記憶管理器"""
-    
-    def __init__(self, model="gpt-4", max_tokens=8000):
-        self.model = model
-        self.max_tokens = max_tokens
-        self.compressor = ContextCompressor()
-        
-        # 分層記憶
-        self.memories = {
-            "episodic": [],      # 事件記憶
-            "semantic": {},      # 語義記憶
-            "working": []        # 工作記憶
-        }
-    
-    def add_turn(self, user_input, assistant_response):
-        """添加一輪對話"""
-        turn = {
-            "user": user_input,
-            "assistant": assistant_response,
-            "timestamp": datetime.now(),
-            "tokens": self.count_tokens(user_input + assistant_response)
-        }
-        
-        # 加入工作記憶
-        self.memories["working"].append(turn)
-        
-        # 檢查是否需要壓縮
-        if self.get_total_tokens() > self.max_tokens * 0.8:
-            self.compress()
-        
-        # 提取重要資訊到語義記憶
-        self.extract_semantic_memory(turn)
-    
-    def compress(self):
-        """壓縮記憶"""
-        # 將舊的工作記憶轉為事件記憶
-        if len(self.memories["working"]) > 10:
-            # 摘要前 5 輪
-            to_compress = self.memories["working"][:5]
-            summary = self.create_summary(to_compress)
+        - **設定人設**：例如，「你是一位資深的天文學家，請用淺顯易懂的方式回答問題。」
             
-            self.memories["episodic"].append({
-                "summary": summary,
-                "original_turns": len(to_compress),
-                "timestamp": to_compress[0]["timestamp"]
-            })
+        - **規範行為**：例如，「你的回答必須保持客觀中立，絕不帶有個人情感。」、「你的回答長度不能超過 200 字。」
             
-            # 移除已壓縮的
-            self.memories["working"] = self.memories["working"][5:]
-    
-    def extract_semantic_memory(self, turn):
-        """提取語義記憶（實體、關係、事實）"""
-        # 簡化版實體提取
-        entities = self.extract_entities(turn["user"])
-        for entity in entities:
-            if entity not in self.memories["semantic"]:
-                self.memories["semantic"][entity] = []
+        - **提供專有知識**：可以放入特定的背景資料或指南，讓 AI 參考。
             
-            self.memories["semantic"][entity].append({
-                "context": turn["assistant"][:100],
-                "timestamp": turn["timestamp"]
-            })
+    - **重要性**：一個好的 System Prompt 能讓模型在整個對話中保持一致性與專業度，是決定 AI 應用成敗的關鍵第一步。它就像船的舵，決定了航行的方向。
+        
+- **User Prompt（使用者提示詞）：當下的「對話」與「任務」**
     
-    def get_relevant_context(self, query):
-        """獲取相關上下文"""
-        context_parts = []
+    - **定義**：這是使用者在每一次互動中，輸入的具體問題或指令。它代表了使用者當前的意圖。
         
-        # 1. 相關的語義記憶
-        relevant_entities = self.extract_entities(query)
-        for entity in relevant_entities:
-            if entity in self.memories["semantic"]:
-                context_parts.append(
-                    f"關於{entity}：{self.memories['semantic'][entity][-1]['context']}"
-                )
+    - **作用**：驅動 AI 針對特定問題產生回應。例如，「請解釋什麼是黑洞？」或「幫我把這段文字翻譯成英文。」
         
-        # 2. 最近的事件記憶
-        if self.memories["episodic"]:
-            latest_episode = self.memories["episodic"][-1]
-            context_parts.append(f"早期對話摘要：{latest_episode['summary']}")
+    - **與 System Prompt 的關係**：User Prompt 是演員（AI）在舞台上接到的「即時指令」。AI 會根據它的核心角色設定（System Prompt）來回應這個即時指令。如果 System Prompt 設定 AI 是天文學家，那麼它回答「什麼是黑洞」時，就會使用專業但易懂的口吻。
         
-        # 3. 完整的工作記憶
-        for turn in self.memories["working"][-5:]:  # 最近 5 輪
-            context_parts.append(f"User: {turn['user']}")
-            context_parts.append(f"Assistant: {turn['assistant']}")
-        
-        return "\n".join(context_parts)
-```
-
-### 🔬 Lab 實作：多輪對話摘要系統
-
-```python
-# Lab: 實作一個智慧對話摘要系統
-class SmartConversationManager:
-    def __init__(self):
-        self.memory_manager = ConversationMemoryManager()
-        self.token_limit = 4000
-        
-    async def chat(self, user_input, session_id):
-        # 1. 載入 session 記憶
-        context = self.memory_manager.get_relevant_context(user_input)
-        
-        # 2. 檢查 token 數量
-        context_tokens = self.count_tokens(context)
-        if context_tokens > self.token_limit:
-            # 動態壓縮
-            context = self.compress_context(context)
-        
-        # 3. 構建 prompt
-        messages = [
-            {"role": "system", "content": "你是一個智慧助理。"},
-            {"role": "system", "content": f"[Context]: {context}"},
-            {"role": "user", "content": user_input}
-        ]
-        
-        # 4. 生成回應
-        response = await self.generate_response(messages)
-        
-        # 5. 更新記憶
-        self.memory_manager.add_turn(user_input, response)
-        
-        # 6. 顯示記憶體使用狀況
-        memory_stats = {
-            "working_memory_turns": len(self.memory_manager.memories["working"]),
-            "episodic_memories": len(self.memory_manager.memories["episodic"]),
-            "semantic_entities": len(self.memory_manager.memories["semantic"]),
-            "total_tokens": self.memory_manager.get_total_tokens(),
-            "compression_ratio": self.calculate_compression_ratio()
-        }
-        
-        return {
-            "response": response,
-            "memory_stats": memory_stats
-        }
+- **Memory（記憶）：對話的「歷史紀錄」**
     
-    def compress_context(self, context):
-        """智慧壓縮上下文"""
-        strategies = [
-            ("summarization", 0.5),
-            ("sliding_window", 0.3),
-            ("importance_sampling", 0.2)
-        ]
+    - **定義**：LLM 本身是「無狀態（Stateless）」的，它不會自動記得之前的對話。為了讓對話能夠持續，我們必須在每一次發送 User Prompt 時，**手動附上** 過去的對話紀錄。這段歷史紀錄就是所謂的「記憶」。
         
-        # 根據內容特性選擇策略
-        if self.is_technical_discussion(context):
-            # 技術討論保留更多細節
-            return self.memory_manager.compressor.sliding_window(
-                context, self.token_limit
-            )
-        else:
-            # 一般對話可以摘要
-            return self.memory_manager.compressor.summarize(
-                context, self.token_limit
-            )
+    - **作用**：
+        
+        - **維持對話連貫性**：讓 AI 知道「我們剛剛聊到哪裡」，能夠理解「他」、「那個」等代名詞的指涉對象。
+            
+        - **避免重複資訊**：AI 知道使用者已經提供過的資訊，不會重複詢問。
+            
+    - **運作方式**：最簡單的記憶模式，就是將 `[歷史對話紀錄] + [最新的 User Prompt]` 一起打包，作為完整的 Context 傳送給模型。
+        
 
-# 測試長對話
-manager = SmartConversationManager()
-session_id = "test_session_001"
+#### **3.2 Context 長度限制 & 壓縮策略**
 
-conversation = [
-    "我想了解你們的退貨政策",
-    "我上週買了一個產品，但是有問題",
-    "訂單號是 ORD-12345",
-    "產品是藍色的藍牙耳機",
-    "問題是左耳常常斷線",
-    "我已經試過重置了，沒有用",
-    "可以換貨嗎？",
-    "如果不能換貨，可以退款嗎？",
-    "退款需要多久？",
-    "需要支付運費嗎？"
-]
+模型的記憶力不是無限的，這是在開發應用時必須面對的現實。
 
-for i, msg in enumerate(conversation):
-    print(f"\n=== Turn {i+1} ===")
-    result = await manager.chat(msg, session_id)
-    print(f"User: {msg}")
-    print(f"Assistant: {result['response'][:100]}...")
-    print(f"Memory Stats: {result['memory_stats']}")
+- **Context 長度限制（Context Window）**
     
-    # 模擬記憶體壓力
-    if i == 4:
-        print("\n[觸發記憶壓縮...]")
-```
+    - **定義**：每個 LLM 都有一個最大的 Context 處理長度，稱為「Context Window」或「Context Length」，通常以 **Token** 為單位計算（一個 Token 約等於幾個英文字母或一個中文字）。常見的長度有 4K, 8K, 32K, 甚至 128K Token。
+        
+    - **問題**：當整個對話（包含 System Prompt、歷史紀錄、最新問題）的總 Token 數超過這個上限時，模型就必須「忘掉」一部分資訊。最常見的情況是，它會忘掉 **最早的對話內容**，導致「失憶」。
+        
+    - **比喻**：這就像一個人的短期記憶容量有限，當你不斷告訴他新資訊時，他會漸漸忘記一開始聽到的內容。
+        
+- **壓縮策略：如何在有限的記憶中塞入更多智慧**
+    
+    - 當對話越來越長，我們不能無限制地把所有歷史紀錄都塞進去。這時就需要「壓縮」策略，來保留最重要的資訊。
+        
+    - **Summarization（摘要法）**：
+        
+        - **方法**：當對話歷史快要超過長度限制時，呼叫 LLM 另一個獨立任務，要求它「總結」目前為止的對話重點。
+            
+        - **實作**：將 `[舊的對話摘要] + [最近幾輪的對話原文] + [最新的 User Prompt]` 組合成新的 Context。這樣既保留了長期的對話精華，又確保了近期的對話細節沒有遺失。這是最常用且效果最好的策略之一。
+            
+    - **Sliding Window（滑動窗口法）**：
+        
+        - **方法**：只保留最近的 N 輪對話。這是一種簡單粗暴的方法。
+            
+        - **優點**：實作簡單，計算成本低。
+            
+        - **缺點**：會完全遺忘早期的重要資訊，例如使用者一開始設定的目標。
+            
+    - **Filtering（過濾法）**：
+        
+        - **方法**：保留 System Prompt 和使用者最重要的幾輪對話，捨棄中間的閒聊或不重要的互動。
+            
+        - **缺點**：需要額外的邏輯來判斷哪些對話是「重要」的。
+            
 
-### 💡 實戰心得
-> 💾 **Memory is Money**：每個 token 都是成本。學會壓縮是省錢的關鍵。我們曾經把一個客服系統的成本降低 60%，就是優化了記憶管理。
+#### **3.3 短期 / 長期記憶的管理模式**
+
+一個好的 AI 應用，不僅要能記得「剛剛說了什麼」，還要能記得「很久以前的偏好」。
+
+- **短期記憶（Short-term Memory）**
+    
+    - **定義**：指在 **單次連續對話** 中，AI 能夠記住的內容。
+        
+    - **管理**：主要就是透過我們前面提到的 **Context 壓縮策略** 來管理。目標是在不超過 Context Window 的前提下，盡可能保留對當前對話有用的資訊。Summarization 是管理短期記憶的黃金標準。
+        
+- **長期記憶（Long-term Memory）**
+    
+    - **定義**：指 AI 能夠 **跨越不同對話、不同時間** 記住的資訊。例如，記住你的名字、偏好的語言風格、或你公司的業務範圍。
+        
+    - **挑戰**：LLM 的 Context Window 是為短期記憶設計的，無法直接實現長期記憶。
+        
+    - **管理模式（RAG - Retrieval-Augmented Generation）**：
+        
+        1. **外部儲存**：將需要長期記住的資訊（例如，使用者個人資料、產品文件、歷史對札記）儲存在一個外部的資料庫，最常見的就是 **向量資料庫（Vector Database）**。
+            
+        2. **資訊檢索**：當使用者提出新問題時，系統先根據問題的關鍵字，去向量資料庫中「搜尋」最相關的幾筆長期記憶。
+            
+        3. **動態注入**：將搜尋到的「相關長期記憶」片段，動態地注入到當前的 System Prompt 或 Context 中，再一起傳送給 LLM。
+            
+    - **比喻**：這就像 AI 在回答你問題前，會先去旁邊的「圖書館」（向量資料庫）快速查閱最相關的幾頁資料，然後再根據這些資料來回答你。
+        
+
+#### **Lab：用 Summarization 管理多輪對話**
+
+實驗目標：
+
+親手打造一個不會輕易「失憶」的聊天機器人。我們將實作一個自動摘要機制，讓它在對話變長時，能自動總結之前的內容，以維持長時間的連貫對話。
+
+**實驗步驟**：
+
+1. **設定場景**：
+    
+    - 建立一個基本的對話迴圈，接收使用者輸入。
+        
+    - 設定一個較小的 Context 上限，例如 1000 Token，以利於快速觸發摘要機制。
+        
+    - 設計一個 System Prompt，例如：「你是一位樂於助人的 AI 助理。」
+        
+2. **對話歷史管理**：
+    
+    - 用一個列表（List/Array）來儲存每一輪的對話（使用者說的、AI 回的）。
+        
+3. **觸發摘要的時機**：
+    
+    - 在每一次發送請求給 LLM **之前**，先計算目前對話歷史的總 Token 數。
+        
+    - **判斷**：如果 `總 Token 數 > 上限 * 0.8`（設定一個緩衝區，例如 80%），則啟動摘要程序。
+        
+4. **執行摘要**：
+    
+    - **呼叫 LLM**：發起一個獨立的 API 請求給 LLM。
+        
+    - **摘要專用 Prompt**：給予 LLM 一個專門用於摘要的指令，例如：`「請將以下對話紀錄濃縮成一段精簡的摘要，保留關鍵的人物、事件與結論：[將前 80% 的對話歷史貼在這裡]」`
+        
+    - **取得摘要結果**：接收 LLM 回傳的摘要文字。
+        
+5. **重建 Context**：
+    
+    - **清空舊歷史**：清空儲存對話歷史的列表。
+        
+    - **建立新歷史**：將 `[摘要結果]` 和 `[保留的後 20% 對話歷史]` 重新放入列表中。
+        
+    - 現在，你的對話歷史變得既簡短又保留了精華！
+        
+6. **繼續對話**：
+    
+    - 將新的、經過壓縮的對話歷史，連同使用者最新的問題，一起發送給 LLM，取得回應。
+        
+    - 重複步驟 2-6。
+        
+
+預期成果：
+
+學員將能觀察到，即使進行了 20、30 輪以上的對話，AI 依然能大致記得一開始的對話內容，因為關鍵資訊都被保存在不斷更新的摘要中。這將讓他們深刻體會到 Context 管理的強大之處。
 
 ---
 
 ## 📘 模組 4：知識掛載與 RAG 基礎（第 4 週）
 
 ### 🎯 學習目標
-掌握 RAG 的核心概念和失敗處理——不需要懂向量資料庫原理
+在本模組中，學員將學習如何讓大型語言模型 (LLM) 連接外部知識庫，以回答特定領域的問題，克服 LLM 本身的知識限制。我們將從頭開始建構一個基本的 RAG 流程，並特別著重於處理在真實世界中常見的「失敗情境」，確保建立的系統更加穩健可靠。
 
 ### 📚 核心內容
 
-#### 4.1 簡化版 RAG Pipeline
+#### **4.1 向量檢索 & Chunking 策略（簡化版）**
 
-```python
-class SimpleRAG:
-    """應用工程師版的 RAG 系統"""
+教學目標：
+
+理解為什麼我們需要將文件「向量化」，以及如何透過基本的「Chunking」策略來處理長文件。
+
+**4.1.1 為什麼需要「知識掛載」？— RAG 的動機**
+
+- **LLM 的天生限制：**
     
-    def __init__(self):
-        # 使用現成的向量資料庫服務
-        self.vector_db = Pinecone(api_key="your-key")
-        self.embedder = OpenAIEmbeddings()
+    - **知識斷層 (Knowledge Cutoff)：** 就像一本2023年出版的百科全書，LLM 不知道之後發生的新事件或新知識。
         
-        # 失敗處理策略
-        self.fallback_strategies = {
-            "no_results": self.handle_no_results,
-            "conflicting": self.handle_conflicts,
-            "low_confidence": self.handle_low_confidence
-        }
+    - **無法存取私有資料：** LLM 對於您公司的內部文件、個人筆記或任何不在其訓練資料中的內容一無所知。
+        
+    - **幻覺 (Hallucination)：** 當 LLM 不確定答案時，有時會「一本正經地胡說八道」，編造看似合理卻錯誤的資訊。
+        
+- **RAG 的核心思想：**
     
-    def search(self, query, k=5):
-        """基礎檢索"""
-        # 1. 生成 embedding（不需要懂原理）
-        query_embedding = self.embedder.embed(query)
+    - **給 LLM 一本「開卷考試」的參考書。** 我們不要求 LLM「背誦」所有知識，而是在它回答問題前，先幫它從我們提供的資料庫（參考書）中，找出最相關的幾頁，讓它「參考」著回答。
         
-        # 2. 向量檢索
-        results = self.vector_db.query(
-            vector=query_embedding,
-            top_k=k,
-            include_metadata=True
-        )
+    - 這樣不僅能提供最新、最準確的資訊，還能大幅減少幻覺的發生。
         
-        # 3. 處理檢索失敗
-        if not results or results[0].score < 0.7:
-            return self.fallback_strategies["no_results"](query)
-        
-        # 4. 檢查衝突
-        if self.has_conflicts(results):
-            return self.fallback_strategies["conflicting"](results)
-        
-        return results
+
+**4.1.2 如何讓機器理解文字？— 向量嵌入 (Vector Embeddings)**
+
+- **概念比喻：** 想像一個巨大的圖書館，每本書都有一個獨特的座標。語意上相似的書（例如「科幻小說」和「奇幻文學」）在圖書館中的位置會非常接近，而與「食譜」這本書的距離則會非常遙遠。
     
-    def has_conflicts(self, results):
-        """檢測結果是否衝突"""
-        # 簡單規則：如果前兩個結果的內容矛盾
-        if len(results) >= 2:
-            doc1 = results[0].metadata['content']
-            doc2 = results[1].metadata['content']
+- **技術解釋：**
+    
+    - **Embedding Model：** 這是一個特殊的 AI 模型，它的工作就是將文字（單詞、句子、段落）轉換成一串數字，這串數字就是「向量 (Vector)」。
+        
+    - **語意相似性 (Semantic Similarity)：** 這些向量的神奇之處在於，它們抓住了文字的「意義」。在向量空間中，意義相近的文字，其向量也比較接近。
+        
+    - **向量檢索：** 當使用者提出一個問題時，我們也將問題轉換成一個向量，然後在我們的「向量資料庫」中，尋找與問題向量「距離最近」的文件向量。這個過程就像在圖書館中找到與你手上紙條描述最相似的書。
+        
+
+**4.1.3 如何處理長篇大論？— Chunking 策略**
+
+- **為什麼需要 Chunking？**
+    
+    - **Context Window 限制：** LLM 一次能處理的文字長度有限（就像人的短期記憶有限），你不能把一本 300 頁的書全部塞給它。
+        
+    - **精準度：** 將長文切成小塊（Chunks），可以讓檢索到的內容更聚焦、更相關，避免無關資訊的干擾。如果只檢索到相關的那個段落，而不是整份文件，LLM 的回答會更精準。
+        
+- **簡化的 Chunking 策略介紹：**
+    
+    - **固定大小 (Fixed-size Chunking)：** 這是最簡單粗暴的方法。例如，設定每個 Chunk 為 500 個字元，並可以設定一些重疊 (Overlap) 的字元，確保語意不會在切割點被完全斷開。
+        
+        - **優點：** 實作簡單快速。
             
-            # 用 LLM 檢測矛盾
-            prompt = f"""
-            Document 1: {doc1}
-            Document 2: {doc2}
+        - **缺點：** 可能會粗暴地將一個完整的句子或段落從中間切斷。
             
-            Do these documents contradict each other? (Yes/No)
-            """
+    - **（可選，進階提及）基於標點符號的分割：** 例如，以句號、問號或段落換行符作為切割點，更能保留語意的完整性。
+        
+
+---
+
+#### **4.2 基本 RAG Pipeline（Retrieval → Augmentation → Generation）**
+
+教學目標：
+
+清晰地拆解 RAG 的三個核心步驟，並理解資訊是如何在其中流動的。
+
+RAG 工作流程圖：
+
+使用者問題 → [1. Retrieval] → 相關文件片段 → [2. Augmentation] → 增強後的 Prompt → [3. Generation (LLM)] → 最終答案
+
+**4.2.1 檢索 (Retrieval)**
+
+- **任務：** 根據使用者的問題，從向量資料庫中找出最相關的 N 個文件片段 (Chunks)。
+    
+- **流程：**
+    
+    1. 將使用者問題透過 Embedding Model 轉換為「查詢向量」。
+        
+    2. 在向量資料庫中進行相似度搜索（例如，餘弦相似度計算）。
+        
+    3. 返回分數最高的前 K 個文件片段。
+        
+
+**4.2.2 增強 (Augmentation)**
+
+- **任務：** 將檢索到的文件片段與原始問題「組合」成一個新的、資訊更豐富的 Prompt。這是整個流程的精髓。
+    
+- **Prompt 模板範例：**
+    
+    ```
+    請根據以下提供的上下文資訊來回答問題。如果上下文中沒有相關資訊，請回答「根據我所擁有的資料，我找不到相關答案」。
+    
+    [上下文資訊開始]
+    {retrieved_chunk_1}
+    ---
+    {retrieved_chunk_2}
+    ---
+    ...
+    [上下文資訊結束]
+    
+    使用者的問題是：
+    {user_question}
+    ```
+    
+- **重點：** 這一步驟是「指示」LLM 如何行動的關鍵。我們明確地告訴它，答案的範圍應該被限制在我們提供的「上下文資訊」中。
+    
+
+**4.2.3 生成 (Generation)**
+
+- **任務：** 將這個「增強後的 Prompt」發送給 LLM，讓它生成最終的答案。
+    
+- **結果：** 因為 LLM 拿到的 Prompt 已經包含了它回答問題所需的所有參考資料，所以它能夠：
+    
+    - 生成基於事實的、準確的回答。
+        
+    - 引用資料來源（如果 Prompt 設計得當）。
+        
+    - 在資料不足時，誠實地承認，而不是胡亂編造。
+        
+
+---
+
+#### **4.3 RAG 失敗處理**
+
+教學目標：
+
+認識到完美的 RAG 系統並不存在，並學習如何設計策略來應對最常見的三種失敗情境。這部分是從「能用」到「好用」的關鍵。
+
+**情境一：找不到文件 (Low Relevance / No Document Found)**
+
+- **原因：**
+    
+    - 使用者的問題與知識庫內容完全無關。
+        
+    - 檢索演算法不夠好，或者相似度分數太低，表示找到的內容可能也是不相關的。
+        
+- **判斷方法：**
+    
+    - 設定一個「相似度分數閾值」。如果在檢索步驟中，所有文件片段的分數都低於這個閾值，我們就判定為「找不到相關文件」。
+        
+- **處理策略：**
+    
+    - **直接回應：** 不要將低品質的內容傳遞給 LLM。系統應直接回應：「抱歉，在我的知識庫中找不到與『...』相關的資訊。您可以換個方式提問嗎？」
+        
+    - **禁止幻覺：** 這是避免 LLM 在沒有資料的情況下自由發揮的關鍵第一道防線。
+        
+
+**情境二：找到多個答案（可能互相衝突）**
+
+- **原因：**
+    
+    - 知識庫中存在過時的舊文件和更新後的新文件（例如，公司政策的兩個版本）。
+        
+    - 不同的文件從不同角度描述同一件事，導致看似矛盾。
+        
+- **處理策略：**
+    
+    - **策略 A (簡單呈現)：** 在 Augmentation 階段，將所有檢索到的（可能衝突的）資訊都提供給 LLM，並在 Prompt 中引導它去總結或指出差異。
+        
+        - **Prompt 範例：** `"請綜合以下多個來源的資訊來回答。如果資訊之間存在衝突，請一併指出。"`
             
-            response = llm.complete(prompt)
-            return "yes" in response.lower()
-        
-        return False
-```
-
-#### 4.2 RAG 失敗處理的藝術
-
-```python
-class RAGFailureHandler:
-    """RAG 失敗處理專家"""
-    
-    def handle_no_results(self, query):
-        """找不到相關文件"""
-        strategies = [
-            self.try_rephrase,        # 改寫查詢
-            self.try_decompose,       # 拆解查詢
-            self.try_generalize,      # 泛化查詢
-            self.fallback_to_llm      # 直接用 LLM
-        ]
-        
-        for strategy in strategies:
-            result = strategy(query)
-            if result["success"]:
-                return result["data"]
-        
-        # 優雅失敗
-        return {
-            "found": False,
-            "message": "抱歉，我在知識庫中找不到相關資訊。讓我用一般知識來回答...",
-            "fallback_response": self.generate_general_response(query)
-        }
-    
-    def try_rephrase(self, query):
-        """改寫查詢詞"""
-        rephrases = [
-            f"換句話說：{query}",
-            f"相關於：{query}",
-            f"關於{self.extract_keywords(query)}"
-        ]
-        
-        for rephrase in rephrases:
-            results = self.search(rephrase)
-            if results:
-                return {"success": True, "data": results}
-        
-        return {"success": False}
-    
-    def handle_conflicts(self, conflicting_results):
-        """處理矛盾的結果"""
-        # 策略 1：顯示所有觀點
-        response = "我找到了不同的資訊：\n"
-        for i, result in enumerate(conflicting_results[:2]):
-            response += f"\n觀點 {i+1}：{result.metadata['content'][:200]}...\n"
-        response += "\n請注意這些資訊可能有所差異。"
-        
-        # 策略 2：讓 LLM 綜合判斷
-        synthesis_prompt = f"""
-        以下是關於同一問題的不同資料：
-        {[r.metadata['content'] for r in conflicting_results]}
-        
-        請綜合這些資訊，給出平衡的答案。
-        """
-        
-        synthesized = llm.complete(synthesis_prompt)
-        
-        return {
-            "has_conflicts": True,
-            "all_views": response,
-            "synthesis": synthesized
-        }
-    
-    def handle_low_confidence(self, results):
-        """處理低信心度結果"""
-        disclaimer = "⚠️ 以下資訊可能不完全準確，僅供參考：\n\n"
-        
-        # 加入信心度指示
-        enriched_response = ""
-        for result in results:
-            confidence = result.score
-            if confidence > 0.9:
-                confidence_indicator = "✅ 高度相關"
-            elif confidence > 0.7:
-                confidence_indicator = "⚠️ 部分相關"
-            else:
-                confidence_indicator = "❌ 相關性較低"
+        - **優點：** 簡單，讓 LLM 自行處理複雜性。
             
-            enriched_response += f"{confidence_indicator}: {result.metadata['content']}\n\n"
-        
-        return disclaimer + enriched_response
-```
-
-#### 4.3 Chunking 策略（簡化版）
-
-```python
-class SimpleChunker:
-    """文件切塊器 - 應用層面就夠了"""
-    
-    def __init__(self, chunk_size=500, overlap=50):
-        self.chunk_size = chunk_size
-        self.overlap = overlap
-    
-    def chunk_document(self, document):
-        """基礎切塊策略"""
-        chunks = []
-        
-        # 策略 1：按段落切
-        paragraphs = document.split('\n\n')
-        
-        current_chunk = ""
-        for para in paragraphs:
-            if len(current_chunk) + len(para) < self.chunk_size:
-                current_chunk += para + "\n\n"
-            else:
-                if current_chunk:
-                    chunks.append(current_chunk.strip())
-                current_chunk = para + "\n\n"
-        
-        if current_chunk:
-            chunks.append(current_chunk.strip())
-        
-        # 加入 overlap
-        chunks_with_overlap = []
-        for i, chunk in enumerate(chunks):
-            if i > 0:
-                # 加入前一塊的結尾
-                prev_end = chunks[i-1][-self.overlap:] if len(chunks[i-1]) > self.overlap else chunks[i-1]
-                chunk = prev_end + "\n...\n" + chunk
+        - **缺點：** 對 LLM 的推理能力要求較高，結果可能不穩定。
             
-            if i < len(chunks) - 1:
-                # 加入下一塊的開頭
-                next_start = chunks[i+1][:self.overlap] if len(chunks[i+1]) > self.overlap else chunks[i+1]
-                chunk = chunk + "\n...\n" + next_start
+    - **策略 B (呈現給使用者)：** 系統直接將找到的多個相關片段呈現給使用者，並附上來源，讓使用者自行判斷。
+        
+        - **回應範例：** `"我找到了以下幾則相關資訊，它們之間可能存在差異，請您參考：\n1. [來源A]: ...\n2. [來源B]: ..."`
             
-            chunks_with_overlap.append(chunk)
-        
-        return chunks_with_overlap
-```
 
-### 🔬 Lab 實作：FAQ Bot with Fallback
+**情境三：回退到通用 LLM (Fallback to General LLM)**
 
-```python
-# Lab: 建立一個有完善 fallback 的 FAQ Bot
-class SmartFAQBot:
-    def __init__(self):
-        self.rag = SimpleRAG()
-        self.failure_handler = RAGFailureHandler()
-        self.response_cache = {}
-        
-        # 預載入 FAQ
-        self.load_faqs()
+- **時機：**
     
-    def load_faqs(self):
-        """載入常見問題"""
-        faqs = [
-            {
-                "question": "如何退貨？",
-                "answer": "您可以在收到商品後 7 天內申請退貨...",
-                "keywords": ["退貨", "退款", "return"]
-            },
-            {
-                "question": "運費怎麼算？",
-                "answer": "運費根據地區和重量計算...",
-                "keywords": ["運費", "配送", "shipping"]
-            }
-        ]
+    - 當觸發了「找不到文件」的狀況後，系統可以提供一個選項。
         
-        for faq in faqs:
-            # 向量化並存入資料庫
-            embedding = self.rag.embedder.embed(faq["question"])
-            self.rag.vector_db.upsert(
-                id=f"faq_{hash(faq['question'])}",
-                vector=embedding,
-                metadata=faq
-            )
+    - 當問題明顯是「閒聊」或「通用知識」類型，而非知識庫內的專業問題時（例如，使用者問 FAQ Bot "今天天氣如何？"）。
+        
+- **處理策略：**
     
-    async def answer(self, question):
-        # 1. 檢查 cache
-        if question in self.response_cache:
-            return self.response_cache[question]
+    - **設計一個決策層：** 在 RAG 流程之前或之後，判斷是否需要繞過 RAG。
         
-        # 2. RAG 檢索
-        results = self.rag.search(question, k=3)
+    - **明確告知使用者：** 當系統決定使用通用 LLM 回答時，必須讓使用者知道。
         
-        # 3. 處理各種情況
-        if isinstance(results, dict):
-            if not results.get("found", True):
-                # 沒找到：使用 fallback
-                response = await self.generate_fallback_response(question)
-            elif results.get("has_conflicts"):
-                # 有衝突：顯示多個觀點
-                response = self.format_conflicting_response(results)
-            else:
-                # 低信心度
-                response = results
-        else:
-            # 正常情況：基於檢索結果生成答案
-            response = await self.generate_answer(question, results)
-        
-        # 4. 快取結果
-        self.response_cache[question] = response
-        
-        # 5. 記錄 metrics
-        self.log_metrics(question, results, response)
-        
-        return response
-    
-    async def generate_answer(self, question, search_results):
-        """基於檢索結果生成答案"""
-        context = "\n".join([r.metadata['answer'] for r in search_results[:2]])
-        
-        prompt = f"""
-        基於以下資訊回答用戶問題：
-        
-        資訊：
-        {context}
-        
-        用戶問題：{question}
-        
-        要求：
-        1. 如果資訊足夠，直接回答
-        2. 如果資訊不足，說明哪部分無法回答
-        3. 保持友善專業的語氣
-        """
-        
-        return await llm.complete(prompt)
-    
-    async def generate_fallback_response(self, question):
-        """生成 fallback 回應"""
-        # 多層 fallback
-        fallbacks = [
-            # Level 1: 嘗試用通用知識
-            lambda: llm.complete(f"用一般知識回答：{question}"),
+        - **回應範例：** `"這個問題超出了我的專業知識庫範圍。不過，根據我的通用知識，我可以告訴您... 這樣的回答可以嗎？"`
             
-            # Level 2: 提供相關連結
-            lambda: f"我無法直接回答您的問題，但您可以查看我們的幫助中心：https://help.example.com",
+    - **為什麼要告知？** 為了管理使用者的期望。使用者需要知道現在的答案是來自於「可信的內部文件」還是「LLM 的通用訓練資料」。
+        
+
+---
+
+#### **Lab：做一個 FAQ Bot，模擬查不到答案 / 答案衝突**
+
+Lab 核心目標：
+
+親手搭建一個迷你的 RAG Pipeline，並在其中實作對「找不到答案」和「答案衝突」這兩種失敗情境的處理邏輯。
+
+**1. 準備知識庫 (一個 `faq.txt` 文件)**
+
+- **創建衝突內容：**
+    
+    ```
+    Q: 退貨期限是多久？
+    A: 我們的標準退貨期限是購買後的 7 天內。 (來源: 舊版政策)
+    ...
+    Q: VIP 會員的退貨政策是什麼？
+    A: VIP 會員享有延長至 14 天的退貨期限。 (來源: 會員福利)
+    ```
+    
+- **創建明確答案：**
+    
+    ```
+    Q: 如何聯繫客服？
+    A: 您可以在上班時間撥打 0800-123-456 聯繫我們的客服團隊。
+    ```
+    
+- **故意留白：** 文件中不要包含任何關於「運費」或「海外配送」的資訊。
+    
+
+**2. Lab 步驟**
+
+1. **環境設定：** 安裝必要的函式庫 (如 `langchain`, `transformers`, `faiss-cpu`, `openai` 等)。
+    
+2. **載入與切割文件 (Load & Chunk)：**
+    
+    - 讀取 `faq.txt` 文件。
+        
+    - 使用 `RecursiveCharacterTextSplitter` 或類似工具，將文件切割成小的 Chunks。
+        
+3. **向量化與儲存 (Embed & Store)：**
+    
+    - 選擇一個 Embedding 模型 (例如 `HuggingFaceEmbeddings`)。
+        
+    - 將 Chunks 轉換為向量，並儲存在一個本地的向量資料庫中 (例如 `FAISS`)。
+        
+4. **建立檢索器 (Retriever)：**
+    
+    - 設定檢索器，讓它可以執行相似度搜索，並設定 `k=2`，表示一次找回最相關的 2 個文件。
+        
+5. **核心邏輯：實作失敗處理**
+    
+    - **主函式 `ask_faq_bot(query)`：**
+        
+        - 接收使用者問題 `query`。
             
-            # Level 3: 轉人工
-            lambda: "這個問題較為複雜，建議您聯繫客服人員。是否需要我幫您轉接？"
-        ]
+        - **執行檢索：** 使用檢索器不僅獲取文件 (documents)，還要獲取它們的相似度分數 (scores)。`retriever.get_relevant_documents_with_scores(query)`
+            
+        - **情境判斷：**
+            
+            - **IF** `scores` 為空，或 `scores[0]` 低於你設定的閾值 (例如 0.7)，**THEN** return `"抱歉，我找不到相關資訊。"` (模擬找不到答案)
+                
+            - **ELSE** 進入 RAG 的 Augmentation 和 Generation 步驟。
+                
+6. **建立完整的 RAG Chain**
+    
+    - 設計你的 Prompt 模板，特別引導 LLM 處理可能的衝突。
         
-        for fallback in fallbacks:
-            try:
-                return fallback()
-            except:
-                continue
+    - 將檢索器、Prompt 模板和 LLM (例如 OpenAI 的 `GPT-3.5-turbo`) 串聯起來。
         
-        return "抱歉，我暫時無法回答這個問題。"
 
-# 測試各種場景
-bot = SmartFAQBot()
+**3. 測試與驗證**
 
-test_cases = [
-    "如何退貨？",           # 正常匹配
-    "退貨政策是什麼？",     # 需要改寫
-    "你們賣火箭嗎？",       # 完全無關
-    "退貨和換貨的區別？",   # 部分匹配
-    "Can I return this?",   # 其他語言
-]
+- **測試 1 (正常情況)：**
+    
+    - **提問：** `"請問如何聯絡客服？"`
+        
+    - **預期結果：** Bot 應該能準確回答 0800 電話號碼。
+        
+- **測試 2 (找不到答案)：**
+    
+    - **提問：** `"海外運費是多少？"`
+        
+    - **預期結果：** 你的程式碼應該在檢索階段就因為分數過低而中止，並直接返回「找不到資訊」的回應。
+        
+- **測試 3 (答案衝突)：**
+    
+    - **提問：** `"退貨期限是幾天？"`
+        
+    - **預期結果：**
+        
+        - 檢索器應該會同時找到「7 天」和「14 天」這兩個 Chunks。
+            
+        - LLM 應該會根據你的 Prompt 指示，生成一個綜合性的答案，例如：「標準退貨期限是 7 天，但如果您是 VIP 會員，則可以延長至 14 天。」
+            
 
-for question in test_cases:
-    print(f"\n問題：{question}")
-    answer = await bot.answer(question)
-    print(f"回答：{answer[:200]}...")
-    print("-" * 50)
-```
+---
 
-### 💡 實戰心得
-> 🎯 **RAG 的精髓不是檢索，而是失敗處理**。一個好的 RAG 系統，80% 的程式碼都在處理「沒找到」或「找錯了」的情況。
+**總結與學習重點回顧：**
+
+- RAG 讓我們能為 LLM 外掛一個「大腦硬碟」，使其知識可以即時更新。
+    
+- Chunking 和 Vectorization 是將外部知識「格式化」以便機器檢索的關鍵前置步驟。
+    
+- 一個穩健的 RAG 系統不僅要會「回答」，更要會「拒絕回答」和「處理模糊地帶」。
+    
+- 透過 Lab 的實作，學員應能體會到，真正的挑戰往往在於如何優雅地處理各種預期外的失敗情境。
 
 ---
 
