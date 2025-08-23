@@ -92,6 +92,7 @@ const componentMappings: Record<string, () => Promise<unknown>> = {
   '2025-06-vibe-coding-framework-guide-from-nextjs-experience': () => import('../content/posts/2025-06-vibe-coding-framework-guide-from-nextjs-experience/components/index'),
   '2025-06-web-deployment-platforms-2025': () => import('../content/posts/2025-06-web-deployment-platforms-2025/components/index'),
   '2025-06-xano-tea-booking-backend': () => import('../content/posts/2025-06-xano-tea-booking-backend/components/index'),
+  '2025-08-llm-os-app-engineer-guide': () => import('../content/posts/2025-08-llm-os-app-engineer-guide/components/index'),
   '2025-08-llm-os-complete-guide': () => import('../content/posts/2025-08-llm-os-complete-guide/components/index'),
 };
 
