@@ -1242,359 +1242,255 @@ Lab 總結與討論
 ## 📘 模組 5：產品思維 for LLM Apps（第 5 週）
 
 ### 🎯 學習目標
-培養產品思維，知道何時該用/不該用 LLM
+在本模組中，學員將學習在 2025 年的技術背景下，如何從產品經理和使用者的角度，思考並打造一個成功、可靠且體驗卓越的 LLM 應用。我們將探討百萬級上下文的應用邊界，如何在極低延遲的預期下權衡成本與模型能力，並設計出更精細、多層次的「優雅降級」策略。
 
 ### 📚 核心內容
 
-#### 5.1 LLM 的能力矩陣
+### **5.1 何時該用 / 不該用 LLM (2025 年視角)**
 
-| 任務類型 | 適合用 LLM | 不適合用 LLM | 替代方案 |
-|---------|-----------|-------------|---------|
-| **創意生成** | ✅ 文案、故事、點子 | ❌ 需要事實準確的內容 | 人工創作 + LLM 輔助 |
-| **格式轉換** | ✅ JSON↔自然語言 | ❌ 複雜的資料轉換 | 專門的 Parser |
-| **分類任務** | ✅ 情感分析、主題分類 | ❌ 需要 100% 準確率 | 傳統 ML 模型 |
-| **計算任務** | ✅ 簡單估算 | ❌ 精確計算 | Calculator API |
-| **搜尋任務** | ✅ 語義搜尋 | ❌ 精確匹配 | 傳統搜尋引擎 |
-| **決策任務** | ✅ 建議、推薦 | ❌ 關鍵決策 | 規則引擎 + 人工 |
+#### **✅ 何時應該優先考慮使用 LLM？**
 
-#### 5.2 成本-延遲-體驗三角
-
-```python
-class ProductDecisionFramework:
-    """產品決策框架"""
+1. **處理非結構化數據 (Unstructured Data)：**（核心價值不變）
     
-    def __init__(self):
-        self.metrics = {
-            "cost": {"weight": 0.3, "threshold": 0.1},      # $0.1 per request
-            "latency": {"weight": 0.3, "threshold": 2000},  # 2 seconds
-            "quality": {"weight": 0.4, "threshold": 0.85}   # 85% satisfaction
-        }
+    - 情感分析、主題提取、資訊擷取等依然是核心應用。
+        
+2. **內容生成與創意發想 (Content Generation & Creativity)：**（核心價值不變）
     
-    def evaluate_llm_fit(self, use_case):
-        """評估是否適合用 LLM"""
-        score = 0
-        reasons = []
+    - 從行銷文案到輔助程式碼，LLM 依然是強大的生產力引擎。
         
-        # 正面因素
-        if use_case["requires_creativity"]:
-            score += 30
-            reasons.append("✅ 需要創意生成")
-        
-        if use_case["handles_natural_language"]:
-            score += 25
-            reasons.append("✅ 處理自然語言")
-        
-        if use_case["needs_flexibility"]:
-            score += 20
-            reasons.append("✅ 需要靈活性")
-        
-        # 負面因素
-        if use_case["requires_deterministic"]:
-            score -= 40
-            reasons.append("❌ 需要確定性結果")
-        
-        if use_case["cost_sensitive"]:
-            score -= 30
-            reasons.append("❌ 成本敏感")
-        
-        if use_case["latency_critical"]:
-            score -= 25
-            reasons.append("❌ 延遲關鍵")
-        
-        # 決策
-        recommendation = "USE_LLM" if score > 0 else "AVOID_LLM"
-        
-        return {
-            "score": score,
-            "recommendation": recommendation,
-            "reasons": reasons,
-            "alternative": self.suggest_alternative(use_case) if score < 0 else None
-        }
+3. **自然語言互動介面 (Natural Language Interfaces)：**（核心價值不變）
     
-    def suggest_alternative(self, use_case):
-        """建議替代方案"""
-        if use_case["requires_deterministic"]:
-            return "使用規則引擎或傳統演算法"
-        elif use_case["cost_sensitive"]:
-            return "使用快取層 + 小模型"
-        elif use_case["latency_critical"]:
-            return "預生成 + Edge 部署"
-        else:
-            return "混合方案：關鍵路徑用傳統方法，輔助功能用 LLM"
-```
-
-#### 5.3 優雅降級策略
-
-```python
-class GracefulDegradation:
-    """優雅降級系統"""
+    - 得益於大幅降低的延遲，對話式 AI 的體驗已從「可用」提升至「流暢」，應用場景更廣。
+        
+4. **處理超長上下文與複雜推理 (Mega-Context & Complex Reasoning) - [重大更新]**
     
-    def __init__(self):
-        self.strategies = [
-            self.try_primary,      # 主要策略：完整 LLM
-            self.try_cache,        # 快取策略
-            self.try_simple_model, # 簡單模型
-            self.try_template,     # 模板回覆
-            self.try_human         # 人工介入
-        ]
+    - **問題特徵**：你的任務需要理解和分析遠超過幾十頁的龐大資料量，甚至整個知識庫。
         
-        self.cache = ResponseCache()
-        self.template_engine = TemplateEngine()
-    
-    async def handle_request(self, request):
-        """多層降級處理"""
-        start_time = time.time()
+    - **應用範例**：
         
-        for i, strategy in enumerate(self.strategies):
-            try:
-                # 設定超時
-                timeout = self.calculate_timeout(i)
-                
-                result = await asyncio.wait_for(
-                    strategy(request),
-                    timeout=timeout
-                )
-                
-                if result["success"]:
-                    # 記錄使用了哪個策略
-                    result["strategy_used"] = strategy.__name__
-                    result["degradation_level"] = i
-                    result["total_time"] = time.time() - start_time
-                    
-                    return result
-                    
-            except asyncio.TimeoutError:
-                print(f"Strategy {strategy.__name__} timeout")
-                continue
-            except Exception as e:
-                print(f"Strategy {strategy.__name__} failed: {e}")
-                continue
-        
-        # 所有策略都失敗
-        return self.final_fallback(request)
-    
-    async def try_primary(self, request):
-        """主要策略：完整 LLM 處理"""
-        response = await llm.complete(
-            request["prompt"],
-            model="gpt-4",
-            temperature=0.7
-        )
-        
-        return {
-            "success": True,
-            "response": response,
-            "quality": "high"
-        }
-    
-    async def try_cache(self, request):
-        """快取策略"""
-        # 語義相似度快取
-        cached = self.cache.get_similar(request["prompt"], threshold=0.95)
-        
-        if cached:
-            return {
-                "success": True,
-                "response": cached["response"],
-                "quality": "cached",
-                "cache_hit": True
-            }
-        
-        return {"success": False}
-    
-    async def try_simple_model(self, request):
-        """使用更簡單的模型"""
-        response = await llm.complete(
-            request["prompt"],
-            model="gpt-3.5-turbo",  # 降級到更快更便宜的模型
-            temperature=0.5,
-            max_tokens=150
-        )
-        
-        return {
-            "success": True,
-            "response": response,
-            "quality": "medium"
-        }
-    
-    async def try_template(self, request):
-        """模板回覆"""
-        # 意圖識別
-        intent = self.classify_intent(request["prompt"])
-        
-        if intent in self.template_engine.templates:
-            response = self.template_engine.generate(intent, request)
-            return {
-                "success": True,
-                "response": response,
-                "quality": "template"
-            }
-        
-        return {"success": False}
-    
-    async def try_human(self, request):
-        """轉人工"""
-        # 創建工單
-        ticket = self.create_support_ticket(request)
-        
-        response = f"""
-        您的問題較為複雜，我已經為您創建了工單 #{ticket['id']}。
-        客服人員將在 30 分鐘內與您聯繫。
-        
-        您也可以直接撥打客服熱線：400-XXX-XXXX
-        """
-        
-        return {
-            "success": True,
-            "response": response,
-            "quality": "human_escalation",
-            "ticket": ticket
-        }
-    
-    def calculate_timeout(self, level):
-        """根據降級等級計算超時時間"""
-        timeouts = [3.0, 1.0, 0.5, 0.2, 0.1]  # 逐級降低
-        return timeouts[min(level, len(timeouts) - 1)]
-```
-
-### 🔬 Lab 實作：降級策略設計與測試
-
-```python
-# Lab: 設計並測試降級策略
-class DegradationTestBench:
-    """降級策略測試平台"""
-    
-    def __init__(self):
-        self.degradation = GracefulDegradation()
-        self.metrics = {
-            "success_rate": [],
-            "response_time": [],
-            "quality_score": [],
-            "cost": []
-        }
-    
-    async def simulate_load(self, requests_per_second=10, duration=60):
-        """模擬負載測試"""
-        tasks = []
-        
-        for i in range(duration):
-            for j in range(requests_per_second):
-                # 模擬不同類型的請求
-                request = self.generate_request()
-                
-                # 隨機注入故障
-                if random.random() < 0.1:  # 10% 故障率
-                    request["inject_failure"] = True
-                
-                task = self.process_request(request)
-                tasks.append(task)
+        - **一次性程式碼庫分析**：像 **Claude Sonnet 4** 支援的百萬級 Token 上下文，可以直接讀取超過 75,000 行程式碼的完整專案，進行安全審查或重構建議，而無需複雜的分片處理。
             
-            await asyncio.sleep(1)
+        - **學術/法律文件整合**：一次性將數十篇研究論文或一份完整的案件卷宗載入模型，進行跨文件的摘要、比較和矛盾點分析。
+            
+        - **個人化終身助理**：模型可以記住與使用者數月甚至數年的對話歷史，提供極度個人化的建議。
+            
+    - **產品決策**：這改變了過去的架構設計，開發者需要在「**架構簡化帶來的高昂單次成本**」與「**分片處理的複雜性但較低成本**」之間做出權衡。
         
-        results = await asyncio.gather(*tasks)
-        self.analyze_results(results)
-    
-    async def process_request(self, request):
-        """處理單個請求"""
-        start = time.time()
-        
-        # 模擬網路問題
-        if request.get("inject_failure"):
-            await asyncio.sleep(random.uniform(5, 10))  # 超時
-        
-        result = await self.degradation.handle_request(request)
-        
-        # 記錄 metrics
-        self.metrics["response_time"].append(time.time() - start)
-        self.metrics["success_rate"].append(1 if result["success"] else 0)
-        self.metrics["quality_score"].append(
-            self.calculate_quality_score(result)
-        )
-        self.metrics["cost"].append(
-            self.calculate_cost(result)
-        )
-        
-        return result
-    
-    def calculate_quality_score(self, result):
-        """計算品質分數"""
-        quality_map = {
-            "high": 1.0,
-            "cached": 0.9,
-            "medium": 0.7,
-            "template": 0.5,
-            "human_escalation": 0.3
-        }
-        return quality_map.get(result.get("quality", "unknown"), 0)
-    
-    def calculate_cost(self, result):
-        """計算成本"""
-        cost_map = {
-            "try_primary": 0.03,      # GPT-4
-            "try_cache": 0.0001,      # 幾乎免費
-            "try_simple_model": 0.002, # GPT-3.5
-            "try_template": 0,         # 免費
-            "try_human": 5.0          # 人工成本
-        }
-        
-        strategy = result.get("strategy_used", "unknown")
-        return cost_map.get(strategy, 0)
-    
-    def analyze_results(self, results):
-        """分析測試結果"""
-        print("\n=== 降級策略測試報告 ===\n")
-        
-        # 成功率
-        success_rate = sum(self.metrics["success_rate"]) / len(self.metrics["success_rate"])
-        print(f"✅ 成功率: {success_rate:.2%}")
-        
-        # 響應時間
-        avg_response = sum(self.metrics["response_time"]) / len(self.metrics["response_time"])
-        p95_response = sorted(self.metrics["response_time"])[int(len(self.metrics["response_time"]) * 0.95)]
-        print(f"⏱️ 平均響應時間: {avg_response:.2f}秒")
-        print(f"⏱️ P95 響應時間: {p95_response:.2f}秒")
-        
-        # 品質分數
-        avg_quality = sum(self.metrics["quality_score"]) / len(self.metrics["quality_score"])
-        print(f"⭐ 平均品質分數: {avg_quality:.2f}/1.0")
-        
-        # 成本
-        total_cost = sum(self.metrics["cost"])
-        avg_cost = total_cost / len(self.metrics["cost"])
-        print(f"💰 總成本: ${total_cost:.2f}")
-        print(f"💰 平均成本: ${avg_cost:.4f}/request")
-        
-        # 策略使用分布
-        strategy_counts = {}
-        for result in results:
-            strategy = result.get("strategy_used", "unknown")
-            strategy_counts[strategy] = strategy_counts.get(strategy, 0) + 1
-        
-        print("\n📊 策略使用分布:")
-        for strategy, count in sorted(strategy_counts.items(), key=lambda x: x[1], reverse=True):
-            percentage = count / len(results) * 100
-            print(f"  - {strategy}: {count} ({percentage:.1f}%)")
-        
-        # 成本效益分析
-        cost_per_quality = total_cost / (avg_quality * len(results))
-        print(f"\n💡 成本效益比: ${cost_per_quality:.4f}/quality point")
-        
-        # 建議
-        print("\n🎯 優化建議:")
-        if avg_response > 2:
-            print("  - 響應時間過長，考慮增加快取或使用更快的模型")
-        if avg_quality < 0.7:
-            print("  - 品質分數偏低，考慮調整降級閾值")
-        if avg_cost > 0.01:
-            print("  - 成本偏高，增加快取命中率或使用更多模板")
 
-# 執行測試
-test_bench = DegradationTestBench()
-await test_bench.simulate_load(requests_per_second=5, duration=30)
+#### **❌ 何時不該使用 LLM（或需極度謹慎）？**
+
+這個清單的核心原則依然有效，但在 2025 年，我們需要用更嚴格的標準來看待：
+
+1. **需要 100% 精準與決定性的結果 (Deterministic Results)：**（原則不變）金融計算、硬體控制等，依然是傳統程式碼的領域。
+    
+2. **對「事實」有嚴格要求的領域 (Fact-critical Domains)：**（原則不變，但風險更高）模型能力越強，其產生的「幻覺」也可能越逼真、越難分辨。對醫療、法律、新聞等領域，**由人類專家最終審核**的原則比以往任何時候都更加重要。
+    
+3. **簡單、規則明確的任務 (Simple, Rule-based Tasks)：**（原則不變）用 **GPT-5** 來驗證 Email 格式，依然是極大的浪費。
+    
+
+---
+
+### **5.2 成本-延遲-體驗三角取捨 (2025 年新維度)**
+
+2025 年的技術進步，讓我們對這個三角關係有了全新的理解。
+
+- **成本 (Cost) - [重大更新]**
+    
+    - **分層定價 (Tiered Pricing)**：模型定價變得更精細。例如，**Claude Sonnet 4** 對於 200K Tokens 以下的上下文收取較低的費用（如 $3/$15 輸入/輸出），但一旦超過 200K，費用就會提升（如 $6/$22.50）。這要求產品設計時必須精確估算上下文長度。
+        
+    - **競爭格局**：模型間的成本差異巨大。例如，在大量使用場景下，**GPT-5** 的成本可能僅為 **Claude Sonnet 4** 的三分之一。選擇哪個模型，直接影響產品的利潤模型和市場競爭力。
+        
+- **延遲 (Latency) - [重大更新]**
+    
+    - **期望值的巨變**：使用者對「即時性」的期望已被拉高。過去 5 秒的等待是可接受的，現在超過 2 秒就會被認為是「卡頓」。
+        
+    - **新基準**：頂級模型的「首個 Token 延遲 (Time to First Token, TTFT)」已降至 **0.2-0.5 秒**，後續生成速度高達 **200-300 tokens/秒**。這使得流暢的即時語音對話、程式碼即時補全成為可能。
+        
+    - **對產品的影響**：降級策略的超時設定必須更加嚴格。過去的超時，現在可能已是服務不可用的指標。
+        
+- **體驗 (Experience / Quality) - [重大更新]**
+    
+    - **超越文本生成**：模型的「體驗」不再僅限於回答品質。
+        
+    - **工具使用與擴展思考 (Tool Use & Extended Thinking)**：如 **Claude 4** 系列，模型可以在內部推理過程中自主呼叫外部工具（如 API 查詢、程式碼執行），甚至**平行處理多個工具呼叫**。
+        
+    - **產品設計模式**：這讓 LLM 從一個「聊天機器人」進化為一個能自主完成複雜任務的「智慧代理 (Agent)」。你的產品可以設計更複雜的工作流，交由 LLM 自主規劃和執行。
+        
+
+---
+
+### **5.3 優雅降級策略 (2025 年精細化版)**
+
+鑑於極低的延遲和多樣化的模型選擇，2025 年的降級策略應該是一個**多層次的模型級聯 (Model Cascade)**，而非簡單的二元切換。
+
+#### **策略核心**
+
+目標是在成本、速度和品質之間動態找到最佳平衡點，永遠優先保證使用者的基本體驗不中斷。
+
+#### **多層級聯策略範例**
+
+一個先進的系統不會只有一個備用選項，而是像瀑布一樣逐級嘗試：
+
+1. **第 1 層：頂級模型 (Top-Tier Model)**
+    
+    - **模型**：`claude-sonnet-4` 或 `gpt-5-pro`
+        
+    - **目標**：提供最佳品質的回應。
+        
+    - **觸發條件**：超時（例如 **2 秒**），或 API 返回錯誤。
+        
+2. **第 2 層：中階平衡模型 (Mid-Tier Balanced Model)**
+    
+    - **模型**：`gpt-5-mini` 或 `gemini-2.5-flash`
+        
+    - **目標**：在品質和速度/成本之間取得平衡，維持良好的互動體驗。
+        
+    - **觸發條件**：超時（例如 **1.5 秒**），或 API 錯誤。
+        
+3. **第 3 層：開源/高速模型 (Open-Source / Speed-focused Model)**
+    
+    - **模型**：本地部署的 `Llama-3.3` 或專門的低延遲 API。
+        
+    - **目標**：速度是第一優先，確保系統總有回應。品質可能較低，但足以應付簡單請求。
+        
+    - **觸發條件**：超時（例如 **1 秒**）。
+        
+4. **第 4 層：快取回覆 (Cache Reply)**
+    
+    - **目標**：對於常見問題，直接返回之前由高品質模型生成的標準答案，成本最低、速度最快。
+        
+5. **第 5 層：模板回覆 (Template Reply)**
+    
+    - **目標**：在所有 AI 模型都失效的極端情況下，給出友善的引導性回覆，並觸發監控警報。
+        
+6. **（並行策略）人工介入 (Human-in-the-Loop)**
+    
+    - 在任何一層，如果模型回覆的信心度低，或使用者觸發了特定關鍵字（如「客訴」、「找真人」），都應立即通知人工團隊。
+        
+
+---
+
+### **Lab (2025 更新版)：設計一個多層級聯降級策略**
+
+#### **目標**
+
+透過撰寫 Python 腳本，模擬一個實現了精細化、多層模型級聯降級策略的現代聊天機器人。
+
+#### **情境**
+
+假設我們要建構一個服務，它需要快速回應，但對複雜問題又能提供高品質的解答。我們將設計一個包含頂級、中階、開源和模板回覆的四層降級策略。
+
+#### **實驗代碼**
+
+**Step 1: 定義我們的模型級聯策略**
+
+我們將策略定義在一個列表中，方便管理和擴展。
+
+Python
+
+```
+# 2025 年的多層降級策略
+MODELS_CASCADE = [
+    {"name": "claude-sonnet-4", "timeout": 2.0, "cost_level": "high", "quality": "premium"},
+    {"name": "gpt-5-mini", "timeout": 1.5, "cost_level": "medium", "quality": "balanced"},
+    {"name": "your-local-llama-3.3", "timeout": 1.0, "cost_level": "low", "quality": "basic"},
+]
 ```
 
-### 💡 實戰心得
-> 🎯 **黃金法則**：永遠不要讓 LLM 成為單點故障。每個 LLM 呼叫都應該有至少 2 層 fallback。
+**Step 2: 更新 Bot 函式以實現級聯邏輯**
+
+`ask_my_bot` 函式將會遍歷我們的策略列表，直到獲得成功的回應。
+
+Python
+
+```
+import openai
+import os
+import time
+
+# 建議使用環境變數來設定你的 API Key
+# os.environ["OPENAI_API_KEY"] = "sk-..."
+client = openai.OpenAI()
+
+# 假設的函式，用於呼叫本地模型
+def call_local_model(prompt, timeout):
+    # 這是一個模擬函式，實際應用中你會在這裡連接到你的本地模型服務
+    print(f"--- 正在嘗試使用本地模型 (超時設定: {timeout}秒) ---")
+    time.sleep(1.2) # 故意讓它有時會超時
+    if timeout < 1.1:
+        raise TimeoutError("本地模型處理超時")
+    return f"來自本地模型的快速回答：關於 '{prompt[:20]}...' 的答案。"
+
+
+def get_llm_response(prompt, model_config):
+    """通用 LLM API 呼叫函式，根據配置操作"""
+    model_name = model_config["name"]
+    timeout = model_config["timeout"]
+
+    try:
+        if "your-local" in model_name:
+             # 處理本地模型呼叫
+            response_content = call_local_model(prompt, timeout)
+        else:
+            # 處理 OpenAI API 呼叫
+            print(f"--- 正在嘗試使用雲端模型: {model_name} (超時設定: {timeout}秒) ---")
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=[{"role": "user", "content": prompt}],
+                timeout=timeout,
+            )
+            response_content = response.choices[0].message.content
+
+        print(f"✅ {model_name} 成功回應！")
+        return response_content
+
+    except Exception as e:
+        print(f"❌ {model_name} 發生錯誤或超時: {e}")
+        return None
+
+
+def ask_my_bot_2025(user_query):
+    """
+    實作了2025年版多層級聯降級策略的 Bot
+    """
+    final_response = None
+    
+    for model_config in MODELS_CASCADE:
+        print(f"\n>> 進入降級層級: {model_config['quality']} ({model_config['name']})")
+        final_response = get_llm_response(user_query, model_config)
+        if final_response:
+            break  # 如果成功獲得回應，就跳出循環
+    
+    # 如果遍歷完所有模型都失敗，返回最終的模板回覆
+    if final_response is None:
+        print("\n>> 降級策略最終層：返回模板訊息。")
+        final_response = "非常抱歉，我們的智慧助理目前遇到了一些困難。我們的團隊已收到通知，請您稍後再試。感謝您的理解！"
+        
+    return final_response
+
+```
+
+**Step 3: 測試與觀察**
+
+Python
+
+```
+# --- 測試開始 ---
+
+print("【測試案例：一個需要高品質答案的複雜問題】")
+query = "請從產品經理的角度，分析百萬級 Token 上下文對 RAG (檢索增強生成) 架構的顛覆性影響，並考量其分層定價帶來的成本挑戰。"
+final_answer = ask_my_bot_2025(query)
+print("\n🤖 最終回覆:\n", final_answer)
+print("-" * 40)
+```
+
+#### **思考題 (2025 年版)**
+
+1. **上下文與成本的權衡**：一個使用者上傳了一份 500 頁的 PDF 報告（約 250K tokens）。你應該選擇用 `claude-sonnet-4` 一次性處理（進入高價區間），還是自己寫分片處理邏輯，讓 `gpt-5-mini` 在低價區間多次處理？你的決策依據是什麼？
+    
+2. **動態超時設定**：目前的 `timeout` 是固定的。我們能否根據使用者的**問題類型**（例如，判斷是簡單問候還是複雜分析）來動態調整每一層的超時時間？這會帶來什麼好處？
+    
+3. **模型選擇的智慧化**：除了失敗降級，我們能否在第一時間就做出更智慧的選擇？例如，設計一個輕量級的「路由模型 (Router Model)」，它的唯一工作就是判斷使用者的問題應該直接交給哪個層級的模型處理最有效率？
 
 ---
 
