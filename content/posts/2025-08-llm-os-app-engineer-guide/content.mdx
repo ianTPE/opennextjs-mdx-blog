@@ -1689,411 +1689,279 @@ order_assistant("氣死我了，等了好幾天都沒消息，我的訂單 98765
 ## 📘 模組 7：可靠性與可觀測性（第 7 週）
 
 ### 🎯 學習目標
-建立監控體系，優化成本與性能
+本模組旨在讓學員掌握在長上下文（Long Context）時代，如何建構和維護穩定、高效且具成本效益的 LLM 應用。我們將揚棄過去以 Token 限制為核心的舊思維，轉向以「最大化任務價值」為導向的新工程典範，學習如何駕馭龐大的上下文窗口，並透過數據驅動決策，確保系統的卓越表現。
 
 ### 📚 核心內容
 
-#### 7.1 成本工程實戰
+#### **7.1 成本工程 (Cost Engineering) 的新現實**
 
-```python
-class CostEngineering:
-    """成本工程系統"""
+**核心概念：** 在長上下文時代，成本考量從「如何節省每一個 Token」轉變為「如何用好每一個 Token 以最大化單次呼叫的價值」。關鍵在於計算**每任務的投資回報率 (ROI)**，而非僅僅是每 Token 的成本。
+
+**1. 長上下文經濟學 (Long Context Economics)**
+
+- **新的成本思維：**
     
-    def __init__(self):
-        self.token_prices = {
-            "gpt-4": {"input": 0.03, "output": 0.06},      # per 1K tokens
-            "gpt-3.5-turbo": {"input": 0.001, "output": 0.002},
-            "claude-3-opus": {"input": 0.015, "output": 0.075},
-            "claude-3-sonnet": {"input": 0.003, "output": 0.015}
-        }
+    - **從「節省 Tokens」到「最大化上下文價值」：** 過去，我們為了塞進有限的上下文窗口，需要對 Prompt 進行極致壓縮。現在，我們可以提供更豐富、更完整的背景資訊，讓模型做出更高品質的判斷和生成。
         
-        self.optimizers = {
-            "batching": BatchingOptimizer(),
-            "caching": CachingOptimizer(),
-            "routing": ModelRouter(),
-            "compression": PromptCompressor()
-        }
+    - **從「每 Token 成本」到「每任務 ROI」：** 一個昂貴但能一次性完美解決複雜任務的長上下文呼叫，其總體成本和使用者體驗，可能遠勝於多次廉價但效果不佳的短上下文呼叫。
+        
+- **實例分析：多文件分析任務**
     
-    def optimize_request(self, request):
-        """優化單個請求"""
-        original_cost = self.estimate_cost(request)
-        optimized = request.copy()
+    - 想像你需要分析一個包含 20 份研究報告的數據集。
         
-        # 1. 壓縮 Prompt
-        optimized["prompt"] = self.optimizers["compression"].compress(
-            request["prompt"]
+    
+    Python
+    
+    ```
+    # 舊方法：多次短請求，受限於上下文長度
+    # 缺點：無法進行跨文件比較，資訊孤立，總體成本可能更高
+    def traditional_analysis(documents):
+        summaries = []
+        # 因上下文限制，只能處理前 5 份文件
+        for doc in documents[:5]:
+            # 每次呼叫都只看到一份文件的內容
+            summary = llm.summarize(doc, max_tokens=4000)
+            summaries.append(summary)
+        return " ".join(summaries) # 最終結果是零散摘要的拼湊
+    
+    # 新方法：單次長上下文請求，釋放模型潛力
+    # 優點：模型能看到全局，進行交叉引用和深度分析，一次性產出高價值洞察
+    def long_context_analysis(documents):
+        # 將所有文件一次性放入上下文中
+        comprehensive_analysis = llm.analyze_all_documents(
+            documents=documents, # 可以包含所有 20 份文檔
+            analysis_depth="comprehensive",
+            instructions="""
+            Analyze all provided documents. Identify the core recurring themes,
+            point out any contradictions between documents, and synthesize a
+            high-level executive summary with key action items.
+            """
         )
-        
-        # 2. 選擇最佳模型
-        optimized["model"] = self.optimizers["routing"].select_model(
-            task_type=request["task_type"],
-            quality_requirement=request.get("quality", 0.8),
-            budget=request.get("budget", float('inf'))
-        )
-        
-        # 3. 檢查快取
-        cached = self.optimizers["caching"].get(optimized["prompt"])
-        if cached:
-            return {
-                "response": cached,
-                "cost": 0,
-                "source": "cache",
-                "savings": original_cost
-            }
-        
-        # 4. 批次處理
-        if self.optimizers["batching"].should_batch(optimized):
-            batch_id = self.optimizers["batching"].add_to_batch(optimized)
-            return {
-                "batch_id": batch_id,
-                "estimated_wait": self.optimizers["batching"].estimate_wait(),
-                "estimated_savings": original_cost * 0.3
-            }
-        
-        final_cost = self.estimate_cost(optimized)
-        
-        return {
-            "optimized_request": optimized,
-            "original_cost": original_cost,
-            "optimized_cost": final_cost,
-            "savings": original_cost - final_cost,
-            "savings_percentage": (original_cost - final_cost) / original_cost * 100
-        }
+        return comprehensive_analysis
+    ```
     
-    def estimate_cost(self, request):
-        """估算成本"""
-        model = request["model"]
-        prompt_tokens = self.count_tokens(request["prompt"])
+
+**2. Batching 策略的重新思考**
+
+- **傳統 Batching 仍然適用：** 對於大量、獨立、簡單的請求（如關鍵字提取），將多個小請求批次處理以降低網路開銷依然有效。
+    
+- **新的「上下文即批次」策略 (Context as a Batch)：** 長上下文窗口讓我們能將一個複雜任務所需的所有資訊（多輪對話歷史、多份文件、資料庫查詢結果）視為一個「批次」，在單一請求中處理。
+    
+    Python
+    
+    ```
+    # 舊策略：傳統的請求級批次處理
+    def old_batching(requests):
+        batch = []
+        for req in requests:
+            if len(batch) < 10: # 傳統批次大小
+                batch.append(req.prompt)
+        return process_batch(batch)
+    
+    # 新策略：利用長上下文處理單一複雜任務
+    # 這裡的 "batch" 指的是資訊的批次，而非請求的批次
+    def new_context_strategy(complex_task):
+        # complex_task 包含了一個用戶的所有相關數據
+        # 這是一次呼叫，但處理了 "一批" 資訊
+        return process_with_full_context(
+            documents=complex_task.all_documents,
+            conversation_history=complex_task.full_history,
+            analysis_requirements=complex_task.comprehensive_requirements
+        )
+    ```
+    
+
+**3. 模型路由的新考量**
+
+- **路由維度增加：** 除了成本和任務複雜度，**「是否需要長上下文推理能力」** 成為了關鍵的路由決策點。
+    
+- **更新的路由邏輯：**
+    
+    - **意圖分析器 (Intent Classifier)** 應該首先判斷任務類型。
         
-        # 估算輸出 tokens（經驗值）
-        estimated_output = prompt_tokens * 0.8
+    
+    Python
+    
+    ```
+    def updated_model_routing(request):
+        # 1. 判斷任務是否需要長上下文
+        if request.requires_long_context_reasoning:
+            # 例如：需要分析超過 50 頁的 PDF，或超過 100 輪的對話
+            return "claude-3-sonnet-35" # 或 Gemini 1.5 Pro，善用長上下文能力
+    
+        # 2. 如果不需要，再根據複雜度判斷
+        elif request.is_simple_classification_or_extraction:
+            # 例如：情感分析、提取地址
+            return "claude-3-haiku" # 快速、便宜的選擇
+    
+        # 3. 處理需要高品質生成但上下文不長的任務
+        elif request.needs_high_quality_generation:
+            # 例如：撰寫一封重要的行銷郵件
+            return "gpt-4o" # 平衡性能與成本的強大模型
+    
+        else:
+            # 預設或更複雜的路由邏輯
+            return "claude-3-sonnet-35"
+    ```
+    
+
+---
+
+#### **7.2 可觀測性 (Observability) 的新維度**
+
+**核心概念：** 系統的可觀測性讓我們能夠量化長上下文帶來的影響，尤其是在延遲和性能表現上。
+
+**1. Logging 與錯誤分析 (無重大變化，但記錄內容更龐大)**
+
+- **挑戰：** 輸入的 Prompt 和輸出可能非常長，對日誌儲存和分析帶來壓力。
+    
+- **策略：** 需要更高效的日誌系統，並可能需要對超長日誌進行摘要或結構化提取後再儲存。
+    
+
+**2. 延遲分析的新維度 (New Dimension in Latency Profiling)**
+
+- **舊的延遲模型已不完整。** 我們必須加入一個關鍵的新變數：上下文載入時間。
+    
+- 更新的延遲分析公式：
+    
+    $$T_{\text{total}} = T_{\text{network}} + T_{\text{queue}} + T_{\text{processing}} + T_{\text{context_loading}} + T_{\text{TTFT}} + T_{\text{generation}}$$
+- **新增的關鍵考量：**
+    
+    - **T_textcontext_loading (上下文載入時間):** 模型在生成第一個 Token 之前，需要花費時間來讀取和理解整個龐大的上下文。這個時間是非線性的，上下文越長，此時間也越長。
         
-        input_cost = (prompt_tokens / 1000) * self.token_prices[model]["input"]
-        output_cost = (estimated_output / 1000) * self.token_prices[model]["output"]
+    - **長上下文下的 TTFT (Time to First Token):** 由於 T_textcontext_loading 的存在，長上下文請求的 TTFT **必然會更長**。這是一個必須接受的權衡。
         
-        return input_cost + output_cost
+    - **決策關鍵：** 我們追求的不是最低的 TTFT，而是**最高的總體價值**。多等待幾秒鐘，換來一個全面、準確、無需返工的答案，對使用者來說體驗更好。
+        
+
+---
+
+#### **7.3 新增！上下文管理策略 (Context Management Strategy)**
+
+**核心概念：** 即使上下文窗口有百萬 Tokens，它依然是有限的，且模型對資訊的注意力並非均勻分佈（「迷失在中間」問題）。有效的上下文管理是釋放長上下文模型全部潛力的關鍵。
+
+Python
+
+```
+class ContextManager:
+    def __init__(self, max_context_length: int = 1_000_000):
+        self.max_length = max_context_length
+
+    def build_context_for_task(self, conversation_history, documents):
+        """
+        智能地選擇、排序和組織上下文內容，
+        而不是單純地拼接和截斷。
+        """
+        return self._strategic_context_selection(conversation_history, documents)
+
+    def _strategic_context_selection(self, history, docs):
+        # 1. 相關性排序：使用 embedding 或關鍵字匹配，將最相關的文檔片段放在前面。
+        ranked_docs = self._rank_documents_by_relevance(docs)
+
+        # 2. 位置策略：將最重要的指令或問題放在上下文的開頭或結尾。
+        #    研究表明模型對這兩端的信息最敏感。
+        final_prompt = f"""
+        [BEGIN CRITICAL INSTRUCTIONS]
+        Your primary goal is to answer the user's final question based on the
+        provided documents and conversation history.
+        User's final question is: {history[-1]['content']}
+        [END CRITICAL INSTRUCTIONS]
+
+        [BEGIN CONVERSATION HISTORY]
+        {self._format_history(history)}
+        [END CONVERSATION HISTORY]
+
+        [BEGIN RELEVANT DOCUMENTS - HIGHEST RELEVANCE FIRST]
+        {self._format_documents(ranked_docs)}
+        [END RELEVANT DOCUMENTS]
+        """
+        return final_prompt
 ```
 
-#### 7.2 可觀測性架構
+- **核心策略：**
+    
+    - **相關性排序 (Relevance Ranking):** 在將文件放入上下文之前，先用輕量級模型或 embedding 對其與當前問題的相關性進行打分排序。
+        
+    - **位置工程 (Positional Engineering):** 確保最關鍵的指令（如 "You MUST answer in JSON format"）和最新的使用者問題被放置在上下文的起始或結束位置。
+        
+    - **上下文壓縮 (Context Compression):** 對於較早的、不那麼重要的對話歷史，可以使用一個小模型先進行摘要，再將摘要放入長上下文中。
+        
 
-```python
-class ObservabilitySystem:
-    """可觀測性系統"""
-    
-    def __init__(self):
-        self.metrics = MetricsCollector()
-        self.tracer = DistributedTracer()
-        self.logger = StructuredLogger()
-        self.profiler = PerformanceProfiler()
-        
-        # 關鍵指標
-        self.key_metrics = {
-            "latency": {"threshold": 2000, "unit": "ms"},
-            "error_rate": {"threshold": 0.01, "unit": "%"},
-            "token_cost": {"threshold": 0.1, "unit": "$"},
-            "user_satisfaction": {"threshold": 0.85, "unit": "score"}
-        }
-    
-    def trace_request(self, request_id):
-        """追蹤請求全流程"""
-        
-        @self.tracer.span("llm_request")
-        async def traced_execution():
-            span = self.tracer.current_span()
-            
-            # 記錄請求屬性
-            span.set_attributes({
-                "request.id": request_id,
-                "request.model": request.get("model"),
-                "request.prompt_length": len(request.get("prompt", "")),
-                "request.timestamp": datetime.now().isoformat()
-            })
-            
-            try:
-                # Prompt 處理階段
-                with self.tracer.span("prompt_processing"):
-                    prompt = await self.process_prompt(request)
-                    span.set_attribute("prompt.tokens", self.count_tokens(prompt))
-                
-                # LLM 呼叫階段
-                with self.tracer.span("llm_call"):
-                    start_time = time.time()
-                    response = await self.call_llm(prompt)
-                    latency = (time.time() - start_time) * 1000
-                    
-                    span.set_attributes({
-                        "llm.latency_ms": latency,
-                        "llm.response_tokens": self.count_tokens(response),
-                        "llm.total_tokens": self.count_tokens(prompt + response)
-                    })
-                
-                # 後處理階段
-                with self.tracer.span("post_processing"):
-                    final_response = await self.post_process(response)
-                
-                # 記錄成功metrics
-                self.metrics.record("request_success", 1)
-                self.metrics.record("request_latency", latency)
-                
-                return final_response
-                
-            except Exception as e:
-                # 記錄錯誤
-                span.set_status("ERROR")
-                span.set_attribute("error.message", str(e))
-                
-                self.metrics.record("request_error", 1)
-                self.logger.error(f"Request failed: {e}", extra={
-                    "request_id": request_id,
-                    "error_type": type(e).__name__
-                })
-                
-                raise
-        
-        return await traced_execution()
-```
+---
 
-#### 7.3 A/B 測試框架
+#### **7.4 Lab 實驗更新：Long Context vs. Traditional Approach**
 
-```python
-class ABTestingFramework:
-    """A/B 測試框架"""
+**實驗目標：** 量化比較「單次長上下文請求」與「傳統多次短請求」在成本、延遲和**輸出品質**上的差異，並根據數據做出架構決策。
+
+**實驗設定：**
+
+1. **場景：** 根據一份 100 頁的 PDF 財報，回答一個需要整合報告中多個章節資訊的複雜問題（例如，“分析第三季度的市場行銷支出與銷售額增長的關係，並與前一季度的表現進行比較”）。
     
-    def __init__(self):
-        self.experiments = {}
-        self.results = defaultdict(lambda: {
-            "impressions": 0,
-            "conversions": 0,
-            "total_latency": 0,
-            "total_cost": 0,
-            "errors": 0
-        })
+2. **建立兩個處理流程：**
     
-    def create_experiment(self, name, variants):
-        """創建實驗"""
-        self.experiments[name] = {
-            "variants": variants,
-            "traffic_split": self.calculate_traffic_split(len(variants)),
-            "created_at": datetime.now(),
-            "status": "running"
-        }
+    Python
     
-    async def run_variant(self, experiment_name, user_id):
-        """執行變體"""
-        experiment = self.experiments[experiment_name]
-        
-        # 分配變體
-        variant = self.assign_variant(user_id, experiment)
-        variant_config = experiment["variants"][variant]
-        
-        # 執行並追蹤
+    ```
+    import time
+    
+    # 方法 A：傳統多次請求 (簡化 RAG)
+    async def traditional_approach(full_document_text, question):
         start_time = time.time()
-        try:
-            # 根據變體配置執行
-            result = await self.execute_variant(variant_config)
-            
-            # 記錄成功metrics
-            self.results[f"{experiment_name}_{variant}"]["impressions"] += 1
-            self.results[f"{experiment_name}_{variant}"]["total_latency"] += (time.time() - start_time)
-            
-            # 計算成本
-            cost = self.calculate_cost(variant_config, result)
-            self.results[f"{experiment_name}_{variant}"]["total_cost"] += cost
-            
-            return result
-            
-        except Exception as e:
-            self.results[f"{experiment_name}_{variant}"]["errors"] += 1
-            raise
+        # 1. 將文檔切片
+        document_chunks = split_into_chunks(full_document_text, chunk_size=3000)
+        # 2. 找到相關的切片 (簡化版，真實世界會用 embedding)
+        relevant_chunks = find_relevant_chunks(document_chunks, question)
+        # 3. 多次呼叫 LLM
+        results_traditional = []
+        for chunk in relevant_chunks:
+            prompt = f"Context: {chunk}\n\nQuestion: {question}\n\nAnswer:"
+            result = await llm_call(prompt, model="claude-3-haiku")
+            results_traditional.append(result)
+        # 4. 最後可能還需要一次呼叫來綜合答案
+        final_answer = await llm_call(f"Synthesize these answers: {results_traditional}", model="claude-3-haiku")
+        traditional_time = time.time() - start_time
+        return {"answer": final_answer, "time": traditional_time, "cost": calculate_cost(multiple_calls)}
     
-    def analyze_experiment(self, experiment_name):
-        """分析實驗結果"""
-        experiment = self.experiments[experiment_name]
-        analysis = {}
+    # 方法 B：長上下文單次請求
+    async def long_context_approach(full_document_text, question):
+        start_time = time.time()
+        prompt = f"Document: {full_document_text}\n\nQuestion: {question}\n\nAnswer based on the full document:"
+        result_long_context = await llm_call(prompt, model="claude-3-sonnet-35")
+        long_context_time = time.time() - start_time
+        return {"answer": result_long_context, "time": long_context_time, "cost": calculate_cost(single_call)}
+    
+    ```
+    
+3. **比較指標：**
+    
+    - **延遲 (Latency):**
         
-        for variant in experiment["variants"]:
-            key = f"{experiment_name}_{variant}"
-            data = self.results[key]
+        - `traditional_time` vs. `long_context_time`。
             
-            if data["impressions"] > 0:
-                analysis[variant] = {
-                    "conversion_rate": data["conversions"] / data["impressions"],
-                    "avg_latency": data["total_latency"] / data["impressions"],
-                    "avg_cost": data["total_cost"] / data["impressions"],
-                    "error_rate": data["errors"] / data["impressions"],
-                    "sample_size": data["impressions"]
-                }
-                
-                # 計算統計顯著性
-                if len(analysis) > 1:
-                    analysis[variant]["statistical_significance"] = \
-                        self.calculate_significance(analysis)
+        - **預期結果：** 長上下文方法的總時間通常更短，因為它避免了多次網路來回和複雜的應用層邏輯。
+            
+    - **成本 (Cost):**
         
-        # 推薦獲勝者
-        winner = self.recommend_winner(analysis)
+        - 計算兩種方法總共消耗的 Token 成本。
+            
+        - **預期結果：** 長上下文呼叫的單價更高，但傳統方法多次呼叫的成本累加起來可能不相上下，甚至更高。
+            
+    - **品質 (Quality) - (最重要的指標!)**
         
-        return {
-            "analysis": analysis,
-            "winner": winner,
-            "confidence": self.calculate_confidence(analysis),
-            "recommendation": self.generate_recommendation(analysis, winner)
-        }
-```
+        - **人工評估：** 答案是否全面？是否發現了隱藏的關聯？是否產生幻覺？
+            
+        - **LLM-as-a-Judge：** 使用 GPT-4o 或 Claude 3 Opus 作為裁判，對兩個答案進行評分。
+            
+        - **預期結果：** 長上下文方法因為擁有全局視野，其答案品質通常遠超傳統方法。
+            
 
-### 🔬 Lab 實作：成本優化實驗
+**決策討論：**
 
-```python
-# Lab: Streaming vs Batch 實驗
-class StreamingVsBatchExperiment:
-    def __init__(self):
-        self.ab_test = ABTestingFramework()
-        self.cost_engine = CostEngineering()
-        self.observability = ObservabilitySystem()
-        
-        # 定義實驗變體
-        self.setup_experiment()
+- 如果長上下文方法的品質顯著更高，那麼它增加的成本和 TTFT 延遲是否值得？在什麼業務場景下是值得的？（例如：法律文件審查、醫療報告分析）。
     
-    def setup_experiment(self):
-        """設定實驗"""
-        self.ab_test.create_experiment(
-            name="streaming_vs_batch",
-            variants={
-                "streaming": {
-                    "mode": "streaming",
-                    "model": "gpt-3.5-turbo",
-                    "batch_size": 1,
-                    "timeout": 30
-                },
-                "batch_small": {
-                    "mode": "batch",
-                    "model": "gpt-3.5-turbo",
-                    "batch_size": 5,
-                    "timeout": 10
-                },
-                "batch_large": {
-                    "mode": "batch",
-                    "model": "gpt-3.5-turbo",
-                    "batch_size": 20,
-                    "timeout": 5
-                }
-            }
-        )
+- 在成本極度敏感但對品質要求不高的場景下，傳統方法是否仍有一席之地？
     
-    async def run_test(self, num_requests=100):
-        """執行測試"""
-        tasks = []
-        
-        for i in range(num_requests):
-            user_id = f"user_{i % 10}"  # 模擬 10 個用戶
-            
-            # 創建測試請求
-            request = {
-                "prompt": f"Test prompt {i}: Explain quantum computing",
-                "user_id": user_id,
-                "timestamp": datetime.now()
-            }
-            
-            # 執行實驗
-            task = self.process_with_monitoring(request, user_id)
-            tasks.append(task)
-            
-            # 模擬真實流量
-            await asyncio.sleep(random.uniform(0.1, 0.5))
-        
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        
-        # 分析結果
-        self.analyze_results(results)
-    
-    async def process_with_monitoring(self, request, user_id):
-        """帶監控的處理"""
-        
-        # 開始追蹤
-        with self.observability.tracer.span("experiment_request") as span:
-            span.set_attribute("user_id", user_id)
-            
-            try:
-                # 執行變體
-                result = await self.ab_test.run_variant(
-                    "streaming_vs_batch",
-                    user_id
-                )
-                
-                # 記錄詳細metrics
-                self.observability.metrics.record("request_success", 1, {
-                    "variant": result.get("variant"),
-                    "user_id": user_id
-                })
-                
-                # 模擬用戶行為（轉換）
-                if self.simulate_user_satisfaction(result):
-                    variant_key = f"streaming_vs_batch_{result['variant']}"
-                    self.ab_test.results[variant_key]["conversions"] += 1
-                
-                return result
-                
-            except Exception as e:
-                self.observability.logger.error(f"Experiment failed: {e}")
-                raise
-    
-    def simulate_user_satisfaction(self, result):
-        """模擬用戶滿意度"""
-        # 基於延遲和品質計算滿意度
-        latency_score = 1.0 if result.get("latency", 0) < 2000 else 0.5
-        quality_score = result.get("quality", 0.8)
-        
-        satisfaction = (latency_score * 0.4 + quality_score * 0.6)
-        
-        # 隨機決定是否轉換
-        return random.random() < satisfaction
-    
-    def analyze_results(self, results):
-        """分析測試結果"""
-        analysis = self.ab_test.analyze_experiment("streaming_vs_batch")
-        
-        print("\n" + "="*60)
-        print("📊 A/B 測試結果分析")
-        print("="*60)
-        
-        for variant, data in analysis["analysis"].items():
-            print(f"\n🔹 變體: {variant}")
-            print(f"   轉換率: {data['conversion_rate']:.2%}")
-            print(f"   平均延遲: {data['avg_latency']:.2f}秒")
-            print(f"   平均成本: ${data['avg_cost']:.4f}")
-            print(f"   錯誤率: {data['error_rate']:.2%}")
-            print(f"   樣本數: {data['sample_size']}")
-        
-        print(f"\n🏆 獲勝者: {analysis['winner']}")
-        print(f"📈 信心度: {analysis['confidence']:.2%}")
-        print(f"\n💡 建議: {analysis['recommendation']}")
-        
-        # 成本節省分析
-        self.calculate_cost_savings(analysis)
-    
-    def calculate_cost_savings(self, analysis):
-        """計算成本節省"""
-        baseline = analysis["analysis"].get("streaming", {})
-        
-        print("\n💰 成本節省分析:")
-        for variant, data in analysis["analysis"].items():
-            if variant != "streaming":
-                savings = baseline.get("avg_cost", 0) - data["avg_cost"]
-                savings_pct = (savings / baseline.get("avg_cost", 1)) * 100
-                
-                print(f"   {variant}: 節省 ${savings:.4f}/request ({savings_pct:.1f}%)")
-                
-                # 月度預估
-                monthly_requests = 100000
-                monthly_savings = savings * monthly_requests
-                print(f"      預估月節省: ${monthly_savings:,.2f}")
-
-# 執行實驗
-experiment = StreamingVsBatchExperiment()
-await experiment.run_test(num_requests=100)
-```
-
-### 💡 實戰心得
-> 📊 **數據驅動決策**：不要憑感覺優化，要用 A/B 測試證明。我們曾經以為 streaming 一定更好，結果發現批次處理在某些場景下成本降低 70%。
+- 如何結合兩者？能否先用長上下文方法生成高品質的草稿，再用小模型進行格式化或微調？
 
 ---
 
