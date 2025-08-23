@@ -1969,542 +1969,163 @@ class ContextManager:
 ## 📘 模組 8：應用落地與 UX 強化（第 8 週）
 
 ### 🎯 學習目標
-將應用推向生產環境，加強用戶體驗
+歡迎來到第八個模組。在前面的課程中，我們專注於如何建構和優化 LLM 的核心功能。現在，我們要將目光轉向產品化的最後一哩路：如何將應用實際部署、衡量其成效，並打造讓使用者滿意且信賴的互動體驗。隨著模型上下文長度的飛速增長，我們面臨著新的成本挑戰和 UX 設計機會。一個功能強大的模型，必須搭配精細的指標追蹤、優雅的使用者體驗和智慧的成本控制，才能在真實世界中取得成功。
 
 ### 📚 核心內容
 
-#### 8.1 產品指標體系設計
+### **8.1 產品指標設計 (Product Metrics Design)**
 
-```python
-class ProductMetrics:
-    """產品指標系統"""
-    
-    def __init__(self):
-        # 技術指標
-        self.technical_metrics = {
-            "latency_p50": {"target": 1000, "unit": "ms", "weight": 0.2},
-            "latency_p95": {"target": 3000, "unit": "ms", "weight": 0.1},
-            "error_rate": {"target": 0.01, "unit": "%", "weight": 0.2},
-            "token_cost_per_request": {"target": 0.05, "unit": "$", "weight": 0.2}
-        }
-        
-        # 業務指標
-        self.business_metrics = {
-            "csat": {"target": 0.85, "unit": "score", "weight": 0.3},  # 客戶滿意度
-            "resolution_rate": {"target": 0.80, "unit": "%", "weight": 0.3},  # 解決率
-            "fallback_rate": {"target": 0.10, "unit": "%", "weight": 0.2},  # 降級率
-            "escalation_rate": {"target": 0.05, "unit": "%", "weight": 0.2}  # 轉人工率
-        }
-        
-        # 綜合健康分數
-        self.health_score_calculator = HealthScoreCalculator()
-    
-    def calculate_health_score(self, current_metrics):
-        """計算健康分數"""
-        technical_score = 0
-        business_score = 0
-        
-        # 計算技術分數
-        for metric, config in self.technical_metrics.items():
-            current = current_metrics.get(metric, 0)
-            target = config["target"]
-            
-            # 反向指標（越低越好）
-            if metric in ["latency_p50", "latency_p95", "error_rate", "token_cost_per_request"]:
-                score = min(1.0, target / max(current, 0.001))
-            else:
-                score = min(1.0, current / target)
-            
-            technical_score += score * config["weight"]
-        
-        # 計算業務分數
-        for metric, config in self.business_metrics.items():
-            current = current_metrics.get(metric, 0)
-            target = config["target"]
-            
-            # 反向指標
-            if metric in ["fallback_rate", "escalation_rate"]:
-                score = min(1.0, target / max(current, 0.001))
-            else:
-                score = min(1.0, current / target)
-            
-            business_score += score * config["weight"]
-        
-        # 綜合分數
-        overall_score = technical_score * 0.4 + business_score * 0.6
-        
-        return {
-            "overall": overall_score,
-            "technical": technical_score,
-            "business": business_score,
-            "status": self.get_status(overall_score),
-            "recommendations": self.generate_recommendations(current_metrics)
-        }
-    
-    def get_status(self, score):
-        """獲取狀態"""
-        if score >= 0.9:
-            return "🟢 Excellent"
-        elif score >= 0.7:
-            return "🟡 Good"
-        elif score >= 0.5:
-            return "🟠 Needs Improvement"
-        else:
-            return "🔴 Critical"
-    
-    def generate_recommendations(self, metrics):
-        """生成優化建議"""
-        recommendations = []
-        
-        # 延遲問題
-        if metrics.get("latency_p95", 0) > 5000:
-            recommendations.append("⚡ 考慮使用更快的模型或增加快取")
-        
-        # 成本問題
-        if metrics.get("token_cost_per_request", 0) > 0.1:
-            recommendations.append("💰 優化 Prompt 長度或使用更便宜的模型")
-        
-        # 滿意度問題
-        if metrics.get("csat", 1) < 0.7:
-            recommendations.append("😊 改善回應品質，考慮增加人工審核")
-        
-        # 降級率問題
-        if metrics.get("fallback_rate", 0) > 0.2:
-            recommendations.append("🔧 檢查主要服務穩定性，優化降級策略")
-        
-        return recommendations
-```
+當我們的 LLM 應用上線後，我們需要一套客觀的指標來量化評估其表現。這些指標可以分為兩大類：**系統效能指標**和**使用者體驗指標**。
 
-#### 8.2 LLM 特有的 UX 模式
+#### **1. 系統效能指標 (System-Centric Metrics)**
 
-```python
-class LLMSpecificUX:
-    """LLM 特有的 UX 元件"""
+這類指標關注應用程式本身的技術表現、穩定性和成本效益。
+
+- **延遲 (Latency)**
     
-    def __init__(self):
-        self.components = {
-            "thinking_indicator": ThinkingIndicator(),
-            "confidence_display": ConfidenceDisplay(),
-            "quick_fix": QuickFixComponent(),
-            "streaming_renderer": StreamingRenderer()
-        }
-    
-    def create_thinking_indicator(self):
-        """思考過程可視化"""
-        return {
-            "type": "thinking_indicator",
-            "stages": [
-                {"id": "understanding", "label": "理解問題", "duration": 500},
-                {"id": "searching", "label": "搜尋資料", "duration": 1000},
-                {"id": "analyzing", "label": "分析中", "duration": 1500},
-                {"id": "generating", "label": "生成回答", "duration": 800}
-            ],
-            "animations": {
-                "dots": "...",
-                "spinner": "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏",
-                "progress": "████░░░░░░"
-            }
-        }
-    
-    def create_confidence_display(self, response, confidence_score):
-        """信心度顯示"""
-        if confidence_score > 0.9:
-            indicator = "✅ 高信心度"
-            color = "green"
-            disclaimer = None
-        elif confidence_score > 0.7:
-            indicator = "⚠️ 中等信心度"
-            color = "yellow"
-            disclaimer = "此回答可能不完全準確，建議進一步確認"
-        else:
-            indicator = "⚡ 低信心度"
-            color = "red"
-            disclaimer = "此回答僅供參考，強烈建議人工確認"
+    - **定義**：從使用者發出請求到系統完整回覆所需的時間 (ms)。
         
-        return {
-            "type": "confidence_display",
-            "score": confidence_score,
-            "indicator": indicator,
-            "color": color,
-            "disclaimer": disclaimer,
-            "show_sources": confidence_score < 0.8  # 低信心時顯示來源
-        }
-    
-    def create_quick_fix_component(self, response):
-        """快速修正元件"""
-        return {
-            "type": "quick_fix",
-            "actions": [
-                {
-                    "id": "regenerate",
-                    "label": "🔄 重新生成",
-                    "hotkey": "Ctrl+R",
-                    "action": "regenerate_response"
-                },
-                {
-                    "id": "report",
-                    "label": "🚩 回報問題",
-                    "hotkey": "Ctrl+F",
-                    "action": "report_issue"
-                },
-                {
-                    "id": "edit",
-                    "label": "✏️ 編輯回答",
-                    "hotkey": "Ctrl+E",
-                    "action": "edit_response"
-                }
-            ],
-            "feedback_options": [
-                "不準確",
-                "不完整",
-                "不相關",
-                "語氣不當"
-            ]
-        }
-    
-    def create_streaming_ux(self):
-        """串流 UX 設計"""
-        return {
-            "type": "streaming",
-            "features": {
-                "typing_effect": {
-                    "enabled": True,
-                    "speed": 50,  # 字/秒
-                    "variable_speed": True  # 模擬真人打字節奏
-                },
-                "partial_render": {
-                    "enabled": True,
-                    "chunk_size": 10,  # 每 10 個字渲染一次
-                    "markdown_preview": True
-                },
-                "interrupt": {
-                    "enabled": True,
-                    "hotkey": "Esc",
-                    "show_stop_button": True
-                },
-                "progress": {
-                    "show_token_count": True,
-                    "show_estimated_time": True,
-                    "show_cost": False  # 生產環境不顯示成本
-                }
-            }
-        }
-```
-
-#### 8.3 部署檢查清單
-
-```python
-class DeploymentChecklist:
-    """部署檢查清單"""
-    
-    def __init__(self):
-        self.checks = {
-            "security": [
-                ("prompt_injection_protection", self.check_prompt_injection),
-                ("api_key_management", self.check_api_keys),
-                ("rate_limiting", self.check_rate_limits),
-                ("data_privacy", self.check_data_privacy)
-            ],
-            "reliability": [
-                ("fallback_strategy", self.check_fallback),
-                ("error_handling", self.check_error_handling),
-                ("timeout_configuration", self.check_timeouts),
-                ("retry_logic", self.check_retry_logic)
-            ],
-            "performance": [
-                ("response_time", self.check_response_time),
-                ("concurrent_requests", self.check_concurrency),
-                ("cache_configuration", self.check_cache),
-                ("model_optimization", self.check_model_optimization)
-            ],
-            "monitoring": [
-                ("logging_setup", self.check_logging),
-                ("metrics_collection", self.check_metrics),
-                ("alerting_rules", self.check_alerts),
-                ("dashboard_setup", self.check_dashboards)
-            ],
-            "cost": [
-                ("budget_limits", self.check_budget_limits),
-                ("cost_tracking", self.check_cost_tracking),
-                ("optimization_rules", self.check_optimizations),
-                ("billing_alerts", self.check_billing_alerts)
-            ]
-        }
-    
-    def run_all_checks(self):
-        """執行所有檢查"""
-        results = {}
-        total_passed = 0
-        total_checks = 0
+    - **為何重要**：過長的延遲會嚴重影響使用者體驗。需要監控平均延遲與 P95/P99 延遲。
         
-        for category, checks in self.checks.items():
-            results[category] = {}
+    - **追蹤方式**：紀錄請求與回覆的時間戳，計算差值並匯總到監控系統。
+        
+- **錯誤率 (Error Rate)**
+    
+    - **定義**：系統無法成功處理請求的比例（如 API 失敗、超時）。
+        
+    - **為何重要**：衡量系統可靠性的核心指標。
+        
+    - **追蹤方式**：捕捉程式中的例外狀況，計算 `(失敗請求數 / 總請求數) * 100%`。
+        
+- **Token 成本 (Token Cost)**
+    
+    - **定義**：每次與 LLM API 互動所消耗的 Token 數量，直接對應營運成本。
+        
+    - **新的考量：上下文長度增加使成本分析更複雜**：隨著模型（如 Claude 3, GPT-4 Turbo）的上下文窗口動輒超過 100K Tokens，單次對話的潛在成本急劇上升。我們不能再只看單次呼叫的成本，而必須從整個對話生命週期的角度來評估。
+        
+    - **追蹤方式**：累加 API 回傳的 `usage` 數據，分析單日成本、單一使用者平均成本、單次對話總成本等。
+        
+- **新增指標：上下文利用率 (Context Utilization)**
+    
+    - **定義**：衡量我們的應用在多大程度上利用了模型提供的長上下文能力。
+        
+    - **為何重要**：高昂的長上下文成本必須花在刀口上。此指標幫助我們了解使用者真實的對話模式，判斷是否需要為長對話優化，或是否可以透過更積極的上下文管理來降低成本。
+        
+    - **追蹤方式**：
+        
+        - **上下文窗口使用率**：追蹤每次 API 呼叫時，`prompt_tokens` 佔模型最大上下文長度的比例。
             
-            for check_name, check_func in checks:
-                result = check_func()
-                results[category][check_name] = result
+        - **對話長度分布**：分析所有對話的總 Token 數分布，了解是短問答為主，還是深度長對話為主。
+            
+
+#### **2. 使用者體驗指標 (User-Centric Metrics)**
+
+這類指標關注使用者對產品的真實感受和互動結果。
+
+- **顧客滿意度 (CSAT - Customer Satisfaction)**：透過 👍/👎 或星級評分，直接了解使用者感受。
+    
+- **問題解決率 (Resolution Rate)**：衡量 Bot 成功解決使用者問題的比例，是其核心價值的體現。
+    
+- **後援率 / 轉人工率 (Fallback Rate)**：衡量 Bot 無法處理請求的比例，是模型或 Prompt 需要優化的信號。
+    
+
+### **8.2 LLM 特有的進階 UX 模式**
+
+我們需要一些特殊的 UX 設計模式來管理使用者的預期、建立信任感，尤其是在處理複雜任務時。
+
+- **思考過程可視化 (Visualizing Thought Process)**
+    
+    - **目的**：解決「空白等待」問題，讓使用者知道系統正在處理中。
+        
+    - **實現方式**：
+        
+        - **Typing 效果 / 流式輸出 (Streaming)**：最基本也最有效的方式，即時顯示生成的文字。
+            
+        - **長文檔處理的進度指示**：當處理需要數十秒的長文檔或複雜任務時，必須提供更詳細的狀態回饋。例如，可以依序顯示：
+            
+            - `"正在分析文檔結構..."`
                 
-                if result["passed"]:
-                    total_passed += 1
-                total_checks += 1
-        
-        # 生成報告
-        return self.generate_report(results, total_passed, total_checks)
+            - `"提取關鍵資訊中..."`
+                
+            - `"生成回覆中..."`
+                
+            - `"完成分析"`
+                
+- **信心度顯示 (Confidence Score Display)**
     
-    def generate_report(self, results, passed, total):
-        """生成部署報告"""
-        score = passed / total * 100
+    - **目的**：管理使用者期望，告知模型對答案的確定程度。
         
-        report = f"""
-        ========================================
-        📋 部署就緒檢查報告
-        ========================================
+    - **實現方式**：附上資料來源連結、使用顏色或標籤標示信心等級。
         
-        總分: {score:.1f}/100
-        狀態: {'✅ 可以部署' if score > 80 else '❌ 需要改進'}
+- **快速修正 (Quick Correction Mechanisms)**
+    
+    - **目的**：提供簡單途徑讓使用者修正不滿意的結果，並收集優化數據。
         
-        詳細結果:
-        """
+    - **實現方式**：提供「重新生成」、「編輯問題」、「回報問題 (👍/👎)」等按鈕。
         
-        for category, checks in results.items():
-            report += f"\n{category.upper()}:\n"
-            for check, result in checks.items():
-                status = "✅" if result["passed"] else "❌"
-                report += f"  {status} {check}: {result['message']}\n"
+- **新增 UX 模式：智能摘要與分段回覆 (Intelligent Summarization & Segmented Replies)**
+    
+    - **目的**：當模型針對複雜問題生成非常長的回覆時，避免使用者被資訊淹沒，提升內容的可讀性和可消化性。
         
-        # 關鍵問題
-        critical_issues = self.find_critical_issues(results)
-        if critical_issues:
-            report += "\n⚠️ 關鍵問題:\n"
-            for issue in critical_issues:
-                report += f"  - {issue}\n"
+    - **實現方式**：
         
-        return report
-```
+        - **智能摘要**：在長回覆的頂部自動生成一個核心觀點的摘要（TL;DR），並提供「展開閱讀全文」的選項。
+            
+        - **分段式呈現**：將長答案自動拆分為有標題的段落，使用者可以點擊各段落標題來閱讀詳細內容，類似可折疊的手風琴效果。
+            
 
-### 🔬 Lab 實作：完整客服 Bot 部署
+### **8.3 成本與上下文優化策略**
 
-```python
-# Lab: 部署一個生產級客服 Bot
-class ProductionCustomerBot:
-    def __init__(self):
-        self.metrics = ProductMetrics()
-        self.ux = LLMSpecificUX()
-        self.deployment = DeploymentChecklist()
-        
-        # 初始化各個組件
-        self.setup_components()
-    
-    def setup_components(self):
-        """設定所有組件"""
-        # 核心功能
-        self.llm_handler = LLMHandler()
-        self.fallback_system = GracefulDegradation()
-        self.cache = ResponseCache()
-        
-        # 監控
-        self.monitoring = ObservabilitySystem()
-        self.analytics = AnalyticsTracker()
-        
-        # UX 元件
-        self.ui_components = {
-            "thinking": self.ux.create_thinking_indicator(),
-            "confidence": None,  # 動態生成
-            "quick_fix": self.ux.create_quick_fix_component(None),
-            "streaming": self.ux.create_streaming_ux()
-        }
-    
-    async def handle_customer_query(self, query, session_id):
-        """處理客戶查詢 - 完整流程"""
-        
-        # 1. 開始追蹤
-        trace_id = self.monitoring.start_trace()
-        
-        try:
-            # 2. 顯示思考指示器
-            await self.show_thinking_process()
-            
-            # 3. 處理查詢（帶降級）
-            response_data = await self.fallback_system.handle_request({
-                "prompt": query,
-                "session_id": session_id,
-                "trace_id": trace_id
-            })
-            
-            # 4. 計算信心度
-            confidence = self.calculate_confidence(response_data)
-            
-            # 5. 準備 UX 元件
-            ui_response = {
-                "message": response_data["response"],
-                "confidence": self.ux.create_confidence_display(
-                    response_data["response"],
-                    confidence
-                ),
-                "quick_actions": self.ux.create_quick_fix_component(
-                    response_data["response"]
-                ),
-                "metadata": {
-                    "strategy_used": response_data.get("strategy_used"),
-                    "response_time": response_data.get("total_time"),
-                    "trace_id": trace_id
-                }
-            }
-            
-            # 6. 記錄 metrics
-            await self.record_metrics(response_data, confidence)
-            
-            # 7. 用戶反饋收集
-            ui_response["feedback_widget"] = self.create_feedback_widget(trace_id)
-            
-            return ui_response
-            
-        except Exception as e:
-            # 錯誤處理
-            self.monitoring.record_error(e, trace_id)
-            return self.create_error_response(e)
-        
-        finally:
-            # 結束追蹤
-            self.monitoring.end_trace(trace_id)
-    
-    async def show_thinking_process(self):
-        """顯示思考過程"""
-        stages = self.ui_components["thinking"]["stages"]
-        
-        for stage in stages:
-            # 發送狀態更新到前端
-            await self.send_status_update({
-                "type": "thinking",
-                "stage": stage["id"],
-                "label": stage["label"]
-            })
-            
-            # 模擬處理時間
-            await asyncio.sleep(stage["duration"] / 1000)
-    
-    def calculate_confidence(self, response_data):
-        """計算回應信心度"""
-        factors = {
-            "strategy_level": {
-                "try_primary": 1.0,
-                "try_cache": 0.9,
-                "try_simple_model": 0.7,
-                "try_template": 0.5,
-                "try_human": 0.3
-            },
-            "response_time": 1.0 if response_data.get("total_time", 0) < 2 else 0.8,
-            "cache_hit": 0.9 if response_data.get("cache_hit") else 1.0
-        }
-        
-        strategy = response_data.get("strategy_used", "unknown")
-        confidence = factors["strategy_level"].get(strategy, 0.5)
-        confidence *= factors["response_time"]
-        
-        if response_data.get("cache_hit"):
-            confidence *= factors["cache_hit"]
-        
-        return min(confidence, 1.0)
-    
-    async def record_metrics(self, response_data, confidence):
-        """記錄各項指標"""
-        metrics = {
-            "latency_p50": response_data.get("total_time", 0) * 1000,
-            "error_rate": 0 if response_data.get("success") else 1,
-            "token_cost_per_request": response_data.get("cost", 0),
-            "csat": confidence,  # 暫時用信心度代替
-            "resolution_rate": 1 if confidence > 0.7 else 0,
-            "fallback_rate": 1 if response_data.get("degradation_level", 0) > 0 else 0,
-            "escalation_rate": 1 if response_data.get("strategy_used") == "try_human" else 0
-        }
-        
-        # 記錄到監控系統
-        for metric, value in metrics.items():
-            self.monitoring.metrics.record(metric, value)
-        
-        # 計算健康分數
-        health = self.metrics.calculate_health_score(metrics)
-        
-        # 如果健康分數低，發送警報
-        if health["overall"] < 0.5:
-            await self.send_alert(f"Health score critical: {health['overall']:.2f}")
-    
-    def create_feedback_widget(self, trace_id):
-        """創建反饋小工具"""
-        return {
-            "type": "feedback",
-            "trace_id": trace_id,
-            "options": [
-                {"emoji": "👍", "value": "helpful"},
-                {"emoji": "👎", "value": "not_helpful"},
-                {"emoji": "😕", "value": "confusing"},
-                {"emoji": "🎯", "value": "accurate"},
-                {"emoji": "❌", "value": "wrong"}
-            ],
-            "allow_text": True,
-            "placeholder": "告訴我們如何改進..."
-        }
-    
-    async def run_deployment_checks(self):
-        """執行部署前檢查"""
-        print("🚀 開始部署前檢查...\n")
-        
-        report = self.deployment.run_all_checks()
-        print(report)
-        
-        # 模擬一些指標
-        test_metrics = {
-            "latency_p50": 800,
-            "latency_p95": 2500,
-            "error_rate": 0.005,
-            "token_cost_per_request": 0.03,
-            "csat": 0.88,
-            "resolution_rate": 0.82,
-            "fallback_rate": 0.08,
-            "escalation_rate": 0.03
-        }
-        
-        health = self.metrics.calculate_health_score(test_metrics)
-        
-        print("\n📊 系統健康報告:")
-        print(f"  整體分數: {health['overall']:.2f} - {health['status']}")
-        print(f"  技術分數: {health['technical']:.2f}")
-        print(f"  業務分數: {health['business']:.2f}")
-        
-        if health["recommendations"]:
-            print("\n💡 優化建議:")
-            for rec in health["recommendations"]:
-                print(f"  {rec}")
-        
-        return health["overall"] > 0.7
+由於上下文窗口變大，成本管理和對話歷史的處理變得空前重要。
 
-# 測試部署
-bot = ProductionCustomerBot()
-
-# 1. 執行部署檢查
-ready = await bot.run_deployment_checks()
-
-if ready:
-    print("\n✅ 系統已準備就緒，可以部署！")
+- **動態上下文管理 (Dynamic Context Management)**
     
-    # 2. 測試一些查詢
-    test_queries = [
-        "我的訂單什麼時候到？",
-        "如何申請退款？",
-        "你們的客服電話是多少？"
-    ]
-    
-    for query in test_queries:
-        print(f"\n測試查詢: {query}")
-        response = await bot.handle_customer_query(query, "test_session")
-        print(f"回應: {response['message'][:100]}...")
-        print(f"信心度: {response['confidence']['indicator']}")
-else:
-    print("\n❌ 系統尚未準備好，請解決上述問題後再部署。")
-```
+    - **問題**：無限制地將所有對話歷史送入 Prompt，會導致 Token 成本迅速膨脹，且可能因為無關資訊過多而降低回覆品質。
+        
+    - **策略**：與其在達到硬性上限時粗暴地截斷歷史，不如採用更智慧的策略。
+        
+    - **實現方式**：
+        
+        - **智慧截斷 (Smart Truncation)**：設計一個函式，當對話歷史接近成本或效能閾值時，自動進行優化。例如，可以保留對話的**第一則**（通常定義了任務目標）、**最近的幾則**（維持對話流暢性），並從中間的對話中**提煉摘要**或**關鍵實體**。
+            
+        - **範例邏輯**：
+            
+            ```
+            def optimize_context_window(conversation_history, max_tokens=50000):
+                if calculate_tokens(conversation_history) > max_tokens * 0.8:
+                    # 演算法：保留第一則、最新的 N 則，並對中間部分進行摘要
+                    return smart_truncate(conversation_history)
+                return conversation_history
+            ```
+            
 
-### 💡 實戰心得
-> 🚀 **UX 決定成敗**：技術再好，用戶體驗差就是失敗。花 50% 的時間在 UX 上不為過。
+### **8.4 Lab 升級版**
+
+在這個實作環節，我們將建立一個能應對長對話和長文檔處理的客服機器人。
+
+- **目標**：建立一個具備進階產品思維的客服機器人，能夠監控成本、優雅地處理複雜任務，並智慧地管理對話歷史。
+    
+- **步驟**：
+    
+    1. **基礎部署**：同前，使用 Streamlit 或 Flask/React 部署一個基本的問答機器人。
+        
+    2. **整合進階指標追蹤**：
+        
+        - **上下文成本監控面板**：在介面上（或至少在後端日誌中）顯示當前對話累計的 `prompt_tokens` 和 `completion_tokens`，以及佔模型最大上下文的比例。
+            
+        - 紀錄 **Latency** 和 **Error Rate**。
+            
+    3. **加上進階 UX 元件**：
+        
+        - 實現**流式輸出**和 **👍/👎 按鈕**。
+            
+        - **模擬長文檔處理流程**：新增一個功能，當使用者輸入特定指令（如 `/process_doc`）時，模擬一個耗時幾秒的處理過程，並在前端依序顯示處理進度（分析結構 -> 提取資訊 -> 生成回覆）。
+            
+    4. **實現智慧對話管理**：
+        
+        - 在後端實現一個簡單的**動態上下文管理**函式。設定一個較小的 Token 閾值（例如 4000 Tokens），一旦對話歷史超過該值，就觸發截斷邏輯（例如，只保留第一則和最新的五則訊息），並在介面上提示使用者「為節省成本，部分較早的對話已被摘要」。
+            
+- **預期成果**：完成後，你將擁有一個更貼近真實產品需求的 LLM 應用。它不僅具備良好的互動體驗，還能在後端展現出對成本和效能的精細化考量。
 
 ---
 
