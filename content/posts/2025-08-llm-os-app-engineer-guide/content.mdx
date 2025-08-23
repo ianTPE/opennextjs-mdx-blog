@@ -1497,435 +1497,192 @@ print("-" * 40)
 ## 📘 模組 6：應用級 Workflow（第 6 週）
 
 ### 🎯 學習目標
-設計多步驟任務流程，處理真實世界的髒資料
+本模組旨在讓學員掌握設計與建構「應用級」大型語言模型（LLM）工作流程的關鍵技術。我們將跳脫單純的「一問一答」，學習如何打造能夠處理複雜、真實世界任務的 AI 系統。學員將學習如何引導模型進行多步驟思考、如何應對不完美的用戶輸入，並探索如何利用**長上下文**的優勢，設計出高效、可靠的 AI Agent，最終透過實作一個現代化的訂單查詢助理來鞏固所學。
 
 ### 📚 核心內容
 
-#### 6.1 Chain 思維設計模式
+### **6.1 多步驟任務設計（Chain 思維的演進）**
 
-```python
-class WorkflowChain:
-    """工作流鏈設計"""
+#### **6.1.1 核心概念：從「API 鏈」到「指令鏈」**
+
+過去，由於模型上下文視窗的限制，處理複雜任務需要將其拆解成多個步驟，並透過**多次 API 呼叫**來串連，每一步的輸出成為下一步的輸入。這就是傳統的「Chain 思維」。
+
+Chain 思維的演進：
+
+隨著模型上下文長度的飛躍性增長，我們現在可以在單一的 API 請求中，給予模型一套包含多個步驟的複雜指令集。Chain 的概念依然存在，但它從一個外部的「API 鏈」，內化成了一個 Prompt 內部的「指令鏈」。
+
+- **教學比喻**：過去，你像是在對一位記憶力有限的助理下達指令，必須說完一步，等他做完回報後，再告訴他下一步。現在，你可以把一份包含所有步驟的完整「待辦清單」直接交給一位能過目不忘的超級助理，讓他一次性規劃並執行。
     
-    def __init__(self):
-        self.steps = []
-        self.error_handlers = {}
-        self.validators = {}
+
+#### **6.1.2 設計模式的轉變**
+
+這種轉變極大地改善了效率和狀態保持能力：
+
+- **延遲與成本的權衡變化**：過去多次 API 呼叫意味著高延遲和高成本。現在，雖然單次請求的處理時間可能稍長，但總體延遲和成本都顯著降低。
     
-    def add_step(self, name, function, validator=None, error_handler=None):
-        """添加步驟"""
-        self.steps.append({
-            "name": name,
-            "function": function
-        })
-        
-        if validator:
-            self.validators[name] = validator
-        if error_handler:
-            self.error_handlers[name] = error_handler
-        
-        return self  # 支援鏈式呼叫
+- **更好的狀態保持**：在單一請求中，模型能看到完整的上下文，從用戶的原始輸入到每一步指令，大幅減少了資訊在步驟間傳遞時的損耗或扭曲。
     
-    async def execute(self, input_data):
-        """執行工作流"""
-        context = {"input": input_data, "steps": {}}
-        
-        for step in self.steps:
-            step_name = step["name"]
-            print(f"執行步驟: {step_name}")
-            
-            try:
-                # 執行步驟
-                result = await step["function"](context)
-                
-                # 驗證結果
-                if step_name in self.validators:
-                    is_valid = self.validators[step_name](result)
-                    if not is_valid:
-                        raise ValueError(f"Validation failed for {step_name}")
-                
-                # 儲存結果
-                context["steps"][step_name] = result
-                
-            except Exception as e:
-                # 錯誤處理
-                if step_name in self.error_handlers:
-                    result = self.error_handlers[step_name](e, context)
-                    context["steps"][step_name] = result
-                else:
-                    raise
-        
-        return context
+
+**範例：從多步驟到單一指令**
+
+```
+# 過去：需要分開呼叫，容易出錯且耗時
+step1_result = llm("校正錯字: " + user_input)
+step2_result = llm("提取意圖: " + step1_result)
+step3_result = llm("選擇工具: " + step2_result)
+
+# 現在：在長上下文環境下，可以一次完成
+prompt = f"""
+請處理以下用戶輸入，並依序執行這些步驟：
+1. 校正所有錯別字和語法錯誤。
+2. 提取用戶的核心意圖和所有關鍵資訊（如訂單號）。
+3. 根據意圖，從可用工具列表中選擇最合適的一個。
+
+用戶輸入: {user_input}
+
+請以 JSON 格式回傳你的分析結果。
+"""
+result = llm(prompt)
 ```
 
-#### 6.2 髒資料處理大全
+### **第二部分：髒資料處理（整合式前處理）**
 
-```python
-class DirtyDataProcessor:
-    """髒資料處理專家"""
+#### **1. 核心概念：前處理內化**
+
+過去，「髒資料」的清理（錯字、多語、情緒）通常作為獨立的「前處理」環節。現在，得益於長上下文和更強的指令遵循能力，這些清理步驟可以直接整合進主要的任務 Prompt 中，成為「指令鏈」的第一環。
+
+#### **6.2 處理策略**
+
+我們的策略從「分步清洗」轉變為「**一次性指令清洗**」。在主 Prompt 中明確指示模型：在進行核心任務（如意圖分析、工具選擇）之前，**必須先**完成數據的校正、翻譯和標準化。
+
+- **問題**：`「搞什麼東西！我的貨到現在還沒收到，爛透了！快告訴我 order 12345 在哪！」`
     
-    def __init__(self):
-        self.cleaners = {
-            "typo": self.fix_typos,
-            "mixed_language": self.handle_mixed_language,
-            "emotional": self.handle_emotional_input,
-            "incomplete": self.handle_incomplete,
-            "contradictory": self.handle_contradictory
-        }
+- 現代化處理 Prompt：
     
-    def clean(self, dirty_input):
-        """清理髒資料"""
-        cleaned = dirty_input
-        issues_found = []
-        
-        # 檢測並修復各種問題
-        for issue_type, cleaner in self.cleaners.items():
-            if self.detect_issue(cleaned, issue_type):
-                cleaned = cleaner(cleaned)
-                issues_found.append(issue_type)
-        
-        return {
-            "original": dirty_input,
-            "cleaned": cleaned,
-            "issues_found": issues_found,
-            "confidence": self.calculate_confidence(issues_found)
-        }
+    「你是一個客服助理。請分析以下用戶輸入。首先，修正錯字並將內容標準化為繁體中文。然後，忽略情緒性發言，提取出用戶的核心請求和訂單號碼。最後，選擇合適的工具。用戶輸入：[...]」
     
-    def fix_typos(self, text):
-        """修正錯字"""
-        # 簡單的錯字修正
-        common_typos = {
-            "teh": "the",
-            "recieve": "receive",
-            "occured": "occurred",
-            "refund": "refund",  
-            "cancle": "cancel"
-        }
-        
-        for typo, correct in common_typos.items():
-            text = text.replace(typo, correct)
-        
-        # 使用 LLM 修正更複雜的錯字
-        if self.has_potential_typos(text):
-            prompt = f"""
-            修正以下文字中的錯字，但保持原意：
-            原文：{text}
-            修正後：
-            """
-            text = llm.complete(prompt, temperature=0.1)
-        
-        return text
+
+### **6.3 簡單 Agent-like Flow（工具選擇的現代化）**
+
+#### **6.3.1 核心概念：從單一決策到綜合分析**
+
+Agent 的核心依然是賦予 AI 「思考」與「行動」的能力。但在長上下文時代，這個「思考」過程變得更加全面。模型不再僅僅是根據（可能已經被處理過的）輸入來選擇工具，而是被要求**同時完成從清理到分析再到決策的全過程**。
+
+#### **6.3.2 現代化的 Agent 決策 Prompt**
+
+我們不再需要一個只專注於工具選擇的簡單 Prompt。取而代之的是一個更全面的**任務型 Prompt**，它要求模型輸出一份結構化的執行計畫。
+
+- 現代化 Agent 的決策 Prompt：
     
-    def handle_mixed_language(self, text):
-        """處理混合語言"""
-        # 檢測語言
-        languages = self.detect_languages(text)
-        
-        if len(languages) > 1:
-            # 策略 1：翻譯成主要語言
-            primary_lang = max(languages.items(), key=lambda x: x[1])[0]
-            
-            prompt = f"""
-            將以下混合語言文字統一翻譯成{primary_lang}：
-            {text}
-            """
-            
-            return llm.complete(prompt)
-        
-        return text
+    「你是一個客服助理。分析以下用戶輸入，並以 JSON 格式輸出一個行動計畫。這個計畫必須包含：1. cleaned_input: 校正和標準化後的用戶請求。2. intent: 用戶的核心意圖。3. entities: 提取出的關鍵實體（如 order_id）。4. suggested_tool: 你建議呼叫的工具名稱。5. response_tone: 根據用戶情緒建議的回應語氣。可用工具：[...] 用戶輸入：[...]」
     
-    def handle_emotional_input(self, text):
-        """處理情緒化輸入"""
-        emotion_score = self.detect_emotion(text)
-        
-        if emotion_score > 0.7:  # 高度情緒化
-            # 提取核心訴求
-            prompt = f"""
-            用戶情緒激動地說：{text}
-            
-            請提取用戶的核心訴求（忽略情緒化表達）：
-            """
-            
-            core_request = llm.complete(prompt)
-            
-            return {
-                "original": text,
-                "emotion_level": "high",
-                "core_request": core_request,
-                "suggested_response_tone": "empathetic"
-            }
-        
-        return text
+
+### **6.4 進階 Agent 設計 — 階層式規劃與新框架**
+
+#### **6.4.1 階層式規劃的再思考**
+
+階層式規劃（分解、解決、組合）的核心思想依然至關重要。但長上下文改變了其實作的粒度。過去需要 Agent 框架（如 LangChain）透過多次 LLM 呼叫來完成的「思考 -> 行動 -> 觀察」循環，現在有越來越多的部分可以被一個更強大的 LLM 在**單次呼叫**中完成。
+
+#### **6.4.2 實作框架的演進與權衡**
+
+- **框架發展**：
     
-    def handle_incomplete(self, text):
-        """處理不完整輸入"""
-        if len(text.split()) < 3:  # 太短
-            return {
-                "original": text,
-                "issue": "incomplete",
-                "clarification_needed": True,
-                "suggested_questions": [
-                    "您能詳細說明一下嗎？",
-                    "請問具體是什麼問題？",
-                    "能提供更多資訊嗎？"
-                ]
-            }
+    - **LangChain**：依然是主流，但其使用模式正在演變。新的工具如 **LangGraph** 允許開發者建立更複雜、有狀態、可循環的 Agent 工作流，而不僅僅是線性的鏈條，這更好地適應了需要多次與外部世界互動的複雜任務。
         
-        return text
+    - **新興框架與原生能力**：OpenAI 的 **Assistants API** 和 Anthropic 的 `tool_use` 等功能，將 Agent 的許多核心邏輯（如工具選擇、狀態管理）直接內建到模型 API 中。這簡化了開發，但也可能犧牲部分客製化的彈性。
+        
+- **現實的權衡：新瓶頸的出現**
+    
+    - **延遲瓶頸**：雖然減少了 API 呼叫次數，但包含複雜指令和長篇上下文的單次請求，其「思考時間」（Time to First Token）可能會變長。瓶頸從「網路往返次數」轉向了「單次推理的複雜度」。
+        
+    - **可靠性瓶頸**：模型能否在一個超長的 Prompt 中，穩定地、準確地遵循所有指令，成為了新的挑戰。一個步驟出錯，可能會影響後續所有指令的執行，這被稱為「注意力渙散」問題。
+        
+
+**結論**：理解階層式規劃的思維，並學會利用現代化的工具（長上下文、Function Calling、LangGraph），在「單次請求的效率」和「多步互動的可靠性」之間找到最佳平衡，是從「建構 AI 應用」邁向「建構高階 AI Agent」的關鍵。
+
+### **Lab：訂單查詢助理（2025 現代化版）**
+
+#### **目標**
+
+利用長上下文和結構化輸出能力，打造一個高效、單次呼叫即可完成分析的訂單查詢助理。
+
+#### **功能要求**
+
+助理的核心是一個能夠接收原始用戶輸入，並**一次性**返回一個包含所有分析結果和行動建議的結構化物件（JSON）的函式。
+
+#### **現代化的實作方式**
+
+我們將設計一個函式 `order_assistant(user_input)`，其核心是向 LLM 發送一個綜合性的 Prompt。
+
+```
+# 現代化的實作方式
+def order_assistant(user_input):
+    # 這個 Prompt 是整個 Lab 的核心
+    prompt = f"""
+    你是頂尖的訂單查詢助理。請對用戶的輸入進行全面的分析，並嚴格按照以下 JSON 格式輸出你的結論。
+
+    分析流程：
+    1. 清理和標準化輸入：修正所有錯別字，並將語言統一為繁體中文。
+    2. 提取訂單號碼和查詢意圖：意圖應為 "查詢訂單狀態" 或 "查詢物流進度"。
+    3. 選擇合適的工具：從 'get_order_status' 或 'get_shipping_details' 中選擇。
+    4. 分析用戶情緒：情緒應為 "正面", "中性", 或 "負面"。
+
+    可用工具：
+    - get_order_status(order_id): 查詢訂單的處理狀態（例如：處理中、已出貨）。
+    - get_shipping_details(order_id): 查詢包裹的物流進度（例如：已交給司機）。
+
+    用戶輸入：
+    "{user_input}"
+
+    輸出格式（僅輸出 JSON，不包含任何額外文字）：
+    {{
+      "cleaned_input": "...",
+      "intent": "...",
+      "order_id": "...",
+      "selected_tool": "...",
+      "user_sentiment": "..."
+    }}
+    """
+    # 在實際應用中，這裡會呼叫 llm(prompt) 並解析返回的 JSON
+    # llm_response_json = llm(prompt)
+    # return llm_response_json
+    print(prompt) # 教學時，我們先印出 Prompt 來分析
+
+# 範例 1 (錯字 + 混合)
+order_assistant("我想查一下我的 order, 編號是 111-222-333，現在ㄉㄠˋ哪了？")
+
+# 範例 2 (情緒化 + 核心指令)
+order_assistant("氣死我了，等了好幾天都沒消息，我的訂單 987654321 到底處理好了沒？")
 ```
 
-#### 6.3 Agent-like Flow 設計
+**預期輸出 (JSON)**:
 
-```python
-class SimpleAgent:
-    """簡單 Agent 流程"""
+- **範例 1 會輸出**:
     
-    def __init__(self):
-        self.tools = {
-            "search_order": self.search_order,
-            "check_inventory": self.check_inventory,
-            "calculate_shipping": self.calculate_shipping,
-            "process_refund": self.process_refund
-        }
-        
-        self.planner = TaskPlanner()
-        self.executor = TaskExecutor()
+    ```
+    {
+      "cleaned_input": "我想查一下我的訂單，編號是 111-222-333，現在到哪了？",
+      "intent": "查詢物流進度",
+      "order_id": "111-222-333",
+      "selected_tool": "get_shipping_details",
+      "user_sentiment": "中性"
+    }
+    ```
     
-    async def process(self, user_request):
-        """處理用戶請求"""
-        
-        # 1. 理解意圖
-        intent = await self.understand_intent(user_request)
-        
-        # 2. 規劃步驟
-        plan = await self.planner.create_plan(intent, self.tools.keys())
-        
-        # 3. 執行計劃
-        results = []
-        for step in plan["steps"]:
-            result = await self.execute_step(step)
-            results.append(result)
-            
-            # 動態調整計劃
-            if result.get("requires_replanning"):
-                plan = await self.planner.replan(plan, results)
-        
-        # 4. 綜合結果
-        final_response = await self.synthesize_response(results)
-        
-        return final_response
+- **範例 2 會輸出**:
     
-    async def understand_intent(self, request):
-        """理解用戶意圖"""
-        prompt = f"""
-        分析用戶請求並識別意圖：
-        
-        用戶說：{request}
-        
-        可能的意圖：
-        - ORDER_STATUS: 查詢訂單狀態
-        - REFUND_REQUEST: 申請退款
-        - PRODUCT_INQUIRY: 產品諮詢
-        - SHIPPING_INFO: 運送資訊
-        - COMPLAINT: 投訴
-        - OTHER: 其他
-        
-        返回格式：
-        {{
-            "primary_intent": "...",
-            "entities": {{...}},
-            "confidence": 0.X
-        }}
-        """
-        
-        response = await llm.complete(prompt)
-        return json.loads(response)
+    ```
+    {
+      "cleaned_input": "我的訂單 987654321 到底處理好了沒？",
+      "intent": "查詢訂單狀態",
+      "order_id": "987654321",
+      "selected_tool": "get_order_status",
+      "user_sentiment": "負面"
+    }
+    ```
     
-    async def execute_step(self, step):
-        """執行單個步驟"""
-        tool_name = step["tool"]
-        params = step["params"]
-        
-        if tool_name not in self.tools:
-            return {"error": f"Tool {tool_name} not found"}
-        
-        try:
-            result = await self.tools[tool_name](**params)
-            return {"success": True, "data": result}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
-```
 
-### 🔬 Lab 實作：訂單查詢助理
-
-```python
-# Lab: 能處理混合語言和模糊輸入的訂單助理
-class SmartOrderAssistant:
-    def __init__(self):
-        self.workflow = WorkflowChain()
-        self.data_processor = DirtyDataProcessor()
-        self.agent = SimpleAgent()
-        
-        # 設定工作流
-        self.setup_workflow()
-    
-    def setup_workflow(self):
-        """設定工作流程"""
-        self.workflow \
-            .add_step("clean_input", self.clean_input) \
-            .add_step("extract_info", self.extract_order_info) \
-            .add_step("search_order", self.search_order) \
-            .add_step("check_status", self.check_order_status) \
-            .add_step("generate_response", self.generate_response)
-    
-    async def clean_input(self, context):
-        """步驟 1：清理輸入"""
-        raw_input = context["input"]
-        
-        # 處理髒資料
-        cleaned = self.data_processor.clean(raw_input)
-        
-        # 處理特殊情況
-        if "mixed_language" in cleaned["issues_found"]:
-            # 統一語言
-            cleaned["cleaned"] = await self.translate_to_primary(cleaned["cleaned"])
-        
-        if "emotional" in cleaned["issues_found"]:
-            # 記錄情緒狀態
-            context["emotional_state"] = "high"
-            context["response_tone"] = "empathetic"
-        
-        return cleaned
-    
-    async def extract_order_info(self, context):
-        """步驟 2：提取訂單資訊"""
-        cleaned_input = context["steps"]["clean_input"]["cleaned"]
-        
-        prompt = f"""
-        從以下文字中提取訂單相關資訊：
-        {cleaned_input}
-        
-        提取：
-        - order_id: 訂單號（如果有）
-        - product_name: 產品名稱
-        - issue: 問題描述
-        - date: 相關日期
-        
-        如果資訊不完整，標記 needs_clarification: true
-        """
-        
-        extracted = await llm.complete(prompt, response_format={"type": "json"})
-        
-        # 驗證提取結果
-        if not extracted.get("order_id"):
-            # 嘗試模糊匹配
-            extracted["possible_orders"] = await self.fuzzy_search_orders(cleaned_input)
-        
-        return extracted
-    
-    async def search_order(self, context):
-        """步驟 3：搜尋訂單"""
-        order_info = context["steps"]["extract_info"]
-        
-        if order_info.get("order_id"):
-            # 精確搜尋
-            order = await self.db.find_order(order_info["order_id"])
-        elif order_info.get("possible_orders"):
-            # 讓用戶確認
-            return {
-                "found_multiple": True,
-                "orders": order_info["possible_orders"],
-                "needs_confirmation": True
-            }
-        else:
-            # 根據其他資訊搜尋
-            orders = await self.db.search_orders(
-                customer_id=context.get("customer_id"),
-                product=order_info.get("product_name"),
-                date_range=self.parse_date_range(order_info.get("date"))
-            )
-            
-            if len(orders) == 1:
-                order = orders[0]
-            elif len(orders) > 1:
-                return {"found_multiple": True, "orders": orders}
-            else:
-                return {"found": False}
-        
-        return {"found": True, "order": order}
-    
-    async def generate_response(self, context):
-        """步驟 5：生成回應"""
-        order_result = context["steps"]["search_order"]
-        
-        # 根據不同情況生成回應
-        if not order_result.get("found"):
-            response = "抱歉，我找不到相關訂單。請確認訂單號或提供更多資訊。"
-        elif order_result.get("found_multiple"):
-            response = self.format_multiple_orders(order_result["orders"])
-        else:
-            order = order_result["order"]
-            status = context["steps"]["check_status"]
-            response = self.format_order_status(order, status)
-        
-        # 根據情緒狀態調整語氣
-        if context.get("emotional_state") == "high":
-            response = self.add_empathy(response)
-        
-        return response
-    
-    async def handle_user_input(self, user_input):
-        """主入口：處理用戶輸入"""
-        
-        # 測試各種髒輸入
-        test_inputs = [
-            "我的訂單（訂單號：ORD12345）到哪了？？？",  # 正常
-            "Check my order status ORDER12345 謝謝",      # 混合語言
-            "wtf 我的東西呢！！！都三天了！！！",         # 情緒化
-            "訂單",                                        # 不完整
-            "我上週買的藍牙耳機怎麼還沒到",                # 模糊
-            "ORD1234... 不對是 ORD12346",                 # 矛盾
-        ]
-        
-        results = []
-        for test_input in test_inputs:
-            print(f"\n處理輸入: {test_input}")
-            
-            try:
-                result = await self.workflow.execute(test_input)
-                response = result["steps"]["generate_response"]
-                
-                print(f"清理後: {result['steps']['clean_input']['cleaned']}")
-                print(f"提取資訊: {result['steps']['extract_info']}")
-                print(f"回應: {response}")
-                
-                results.append({
-                    "input": test_input,
-                    "success": True,
-                    "response": response
-                })
-                
-            except Exception as e:
-                print(f"錯誤: {e}")
-                results.append({
-                    "input": test_input,
-                    "success": False,
-                    "error": str(e)
-                })
-        
-        # 統計成功率
-        success_rate = sum(1 for r in results if r["success"]) / len(results)
-        print(f"\n成功率: {success_rate:.1%}")
-        
-        return results
-
-# 執行測試
-assistant = SmartOrderAssistant()
-results = await assistant.handle_user_input("測試輸入")
-```
-
-### 💡 實戰心得
-> 🔧 **髒資料是常態，不是例外**。一個產品級的 LLM 應用，50% 的程式碼都在處理各種邊界情況。
+後端系統在收到這個 JSON 後，就可以非常清晰地知道接下來該執行哪個函式，以及在回應客戶時應該使用什麼樣的語氣。
 
 ---
 
