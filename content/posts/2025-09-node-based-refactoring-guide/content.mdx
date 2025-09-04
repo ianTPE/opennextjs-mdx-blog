@@ -120,7 +120,7 @@ const orderWorkflow = new SequenceNode("ProcessOrder", [
 ### 階段一：分析與規劃
 
 #### 1.1 流程識別清單
-```markdown
+```text
 □ 主要業務流程步驟
 □ 條件分支邏輯
 □ 錯誤處理流程
@@ -133,7 +133,7 @@ const orderWorkflow = new SequenceNode("ProcessOrder", [
 | 邏輯類型 | 處理策略 | 範例 |
 |---------|---------|------|
 | 簡單順序邏輯 | 拆分為獨立節點 | 驗證→處理→儲存 |
-| 條件分支 | 使用 IfNode | if (isPremium) {...} |
+| 條件分支 | 使用 IfNode | if (isPremium) \{...\} |
 | 複雜演算法 | 保留為黑盒節點 | 機器學習模型推論 |
 | 多重 fallback | 使用 TryNode | API1 失敗→API2→本地快取 |
 | 緊密耦合邏輯 | 封裝為單一節點 | 交易處理+餘額更新 |
@@ -343,8 +343,6 @@ class BaseNode {
     }
   }
 }
-```
-
 ### 2. 監控儀表板規格
 
 ```html
@@ -529,7 +527,7 @@ app.post("/api/process", async (req, res) => {
 
 | 原則 | 說明 | 範例 |
 |-----|------|------|
-| **單一職責** | 每個節點只做一件事 | ✅ ValidateEmailNode<br>❌ ValidateAndSendEmailNode |
+| **單一職責** | 每個節點只做一件事 | ✅ ValidateEmailNode<br />❌ ValidateAndSendEmailNode |
 | **無狀態** | 節點不應保存狀態 | 使用 ctx 傳遞狀態 |
 | **冪等性** | 重複執行結果相同 | 避免在節點中累加計數 |
 | **可測試** | 獨立可測 | 透過 mock ctx 測試 |
@@ -608,8 +606,6 @@ const batchNode = new BaseNode("Batch", async (ctx, input) => {
   
   return results;
 });
-```
-
 ### 4. 監控與告警設定
 
 ```yaml
@@ -1019,7 +1015,7 @@ const QueueTaskNode = new BaseNode("QueueTask", async (ctx, input) => {
 
 以下是你可以直接使用的完整重構 Prompt：
 
-```markdown
+```text
 # Node-Based 架構重構請求
 
 請將以下程式碼重構為 Node-Based 架構，必須包含：
@@ -1045,7 +1041,6 @@ const QueueTaskNode = new BaseNode("QueueTask", async (ctx, input) => {
 
 ## 原始程式碼
 [在這裡貼上你的程式碼]
-```
 
 ---
 
