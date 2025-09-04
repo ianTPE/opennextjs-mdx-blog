@@ -1,0 +1,1082 @@
+# 🚀 Node-Based 重構完全指南
+## 將任何程式碼升級為企業級可觀測架構
+
+> **版本**: 2.0  
+> **適用範圍**: JavaScript, Python, Go, Java, C# 等所有主流語言  
+> **目標使用者**: 架構師、資深工程師、技術主管
+
+---
+
+## 📋 目錄
+
+1. [快速開始](#快速開始)
+2. [核心概念](#核心概念)
+3. [重構方法論](#重構方法論)
+4. [架構設計規範](#架構設計規範)
+5. [實作指南](#實作指南)
+6. [最佳實踐](#最佳實踐)
+7. [範例與模板](#範例與模板)
+8. [常見問題](#常見問題)
+
+---
+
+## 🎯 快速開始
+
+### 什麼是 Node-Based 重構？
+
+將傳統的流程式程式碼轉換為**節點式工作流系統**，每個業務步驟成為獨立的節點，具備：
+- ✅ **精確錯誤定位**：失敗時知道確切節點
+- ✅ **效能監控**：自動追蹤每個步驟耗時
+- ✅ **可視化流程**：業務邏輯一目了然
+- ✅ **易於測試**：節點獨立可測
+- ✅ **靈活擴展**：新增步驟只需加入節點
+
+### 30 秒快速使用
+
+```bash
+# 步驟 1: 複製下方的 Prompt
+# 步驟 2: 將你的原始程式碼貼在 Prompt 後面
+# 步驟 3: 獲得重構後的企業級程式碼
+```
+
+### 適用場景判斷
+
+| ✅ **適合重構** | ❌ **不適合重構** |
+|---|---|
+| API 服務後端 | 純演算法實作 |
+| 資料處理管道 | UI 元件程式碼 |
+| 工作流程引擎 | 資料庫 Schema |
+| 批次處理系統 | 配置檔案 |
+| 微服務架構 | 單純 CRUD |
+
+---
+
+## 🧩 核心概念
+
+### 1. 節點 (Node) 架構層級
+
+```
+┌─────────────────────────────────────┐
+│         應用層 (Application)         │
+├─────────────────────────────────────┤
+│      工作流層 (Workflow Graph)       │
+├─────────────────────────────────────┤
+│       節點層 (Node Classes)          │
+├─────────────────────────────────────┤
+│      運行時 (Runtime Core)           │
+└─────────────────────────────────────┘
+```
+
+### 2. 節點類型系統
+
+#### 基礎節點類型
+- **BaseNode**: 所有節點的父類別，提供統一介面
+- **SequenceNode**: 順序執行多個子節點
+- **IfNode**: 條件分支，執行 then 或 else 節點
+- **TryNode**: 錯誤容錯，提供 fallback 機制
+
+#### 業務節點範例
+```javascript
+// Before: 傳統寫法
+function processOrder(order) {
+  validateOrder(order);
+  calculatePrice(order);
+  applyDiscount(order);
+  createInvoice(order);
+  sendEmail(order);
+}
+
+// After: Node-Based
+const orderWorkflow = new SequenceNode("ProcessOrder", [
+  new ValidateOrderNode(),
+  new CalculatePriceNode(),
+  new ApplyDiscountNode(),
+  new CreateInvoiceNode(),
+  new SendEmailNode()
+]);
+```
+
+### 3. 可觀測性 (Observability) 三支柱
+
+#### 📊 Metrics (指標)
+- 節點執行時間
+- 成功/失敗率
+- 吞吐量統計
+
+#### 📝 Logs (日誌)
+- 結構化日誌格式
+- 多層級控制 (DEBUG/INFO/WARN/ERROR)
+- 彩色終端輸出
+
+#### 🔍 Traces (追蹤)
+- 完整執行路徑
+- 錯誤堆疊追蹤
+- 分散式追蹤支援
+
+---
+
+## 🔧 重構方法論
+
+### 階段一：分析與規劃
+
+#### 1.1 流程識別清單
+```markdown
+□ 主要業務流程步驟
+□ 條件分支邏輯
+□ 錯誤處理流程
+□ 外部服務調用
+□ 資料轉換步驟
+```
+
+#### 1.2 複雜度評估矩陣
+
+| 邏輯類型 | 處理策略 | 範例 |
+|---------|---------|------|
+| 簡單順序邏輯 | 拆分為獨立節點 | 驗證→處理→儲存 |
+| 條件分支 | 使用 IfNode | if (isPremium) {...} |
+| 複雜演算法 | 保留為黑盒節點 | 機器學習模型推論 |
+| 多重 fallback | 使用 TryNode | API1 失敗→API2→本地快取 |
+| 緊密耦合邏輯 | 封裝為單一節點 | 交易處理+餘額更新 |
+
+### 階段二：節點設計
+
+#### 2.1 節點粒度原則
+
+**✅ 應該拆分的場景：**
+```javascript
+// 原始程式碼
+async function handleRequest(req) {
+  // 1. 驗證輸入 - 獨立節點
+  if (!req.body.email) throw new Error("Missing email");
+  
+  // 2. 查詢資料庫 - 獨立節點
+  const user = await db.findUser(req.body.email);
+  
+  // 3. 呼叫外部 API - 獨立節點
+  const profile = await fetchProfile(user.id);
+  
+  // 4. 建構回應 - 獨立節點
+  return formatResponse(user, profile);
+}
+```
+
+**❌ 不應拆分的場景：**
+```javascript
+// 複雜的降級策略 - 保持為單一節點
+class LLMServiceWithFallback {
+  async analyze(text) {
+    // 保持這整個複雜邏輯在一起
+    try {
+      return await this.primaryLLM(text);
+    } catch (e1) {
+      try {
+        return await this.secondaryLLM(text);
+      } catch (e2) {
+        return await this.localModel(text);
+      }
+    }
+  }
+}
+```
+
+#### 2.2 節點命名規範
+
+```javascript
+// ✅ 好的命名
+ValidateEventNode      // 動詞 + 名詞 + Node
+FetchUserDataNode     // 清楚表達動作
+BuildResponseNode     // 明確的目的
+
+// ❌ 避免的命名
+ProcessNode          // 太模糊
+Node1, Node2        // 無意義
+DoStuffNode        // 不專業
+```
+
+### 階段三：實作與整合
+
+#### 3.1 節點實作檢查清單
+```markdown
+每個節點必須包含：
+□ 明確的單一職責
+□ 輸入/輸出類型定義
+□ 錯誤處理邏輯
+□ 日誌記錄點
+□ 效能閾值設定
+□ 單元測試
+```
+
+#### 3.2 工作流組合模式
+
+```javascript
+// 模式 1: 線性流程
+const linearFlow = new SequenceNode("Main", [
+  nodeA, nodeB, nodeC
+]);
+
+// 模式 2: 條件分支
+const branchFlow = new SequenceNode("Main", [
+  nodeA,
+  new IfNode("CheckCondition", 
+    (ctx, input) => input.isPremium,
+    premiumNode,
+    standardNode
+  ),
+  nodeC
+]);
+
+// 模式 3: 錯誤容錯
+const resilientFlow = new SequenceNode("Main", [
+  nodeA,
+  new TryNode("FetchData", [
+    primaryAPINode,
+    secondaryAPINode,
+    cacheNode
+  ]),
+  nodeC
+]);
+```
+
+---
+
+## 📐 架構設計規範
+
+### 1. 核心類別設計
+
+```javascript
+// ========== 1. Logger 類別 ==========
+class Logger {
+  constructor(options = {}) {
+    this.level = options.level || 'INFO';
+    this.colors = options.colors !== false;
+    this.structured = options.structured || false;
+  }
+  
+  // 方法簽名
+  debug(nodeId, message, data) {}
+  info(nodeId, message, data) {}
+  warn(nodeId, message, data) {}
+  error(nodeId, message, error, data) {}
+}
+
+// ========== 2. ExecutionTracer 類別 ==========
+class ExecutionTracer {
+  constructor() {
+    this.spans = [];
+    this.currentPath = [];
+    this.errors = [];
+  }
+  
+  // 方法簽名
+  startSpan(nodeId) {}
+  endSpan(nodeId, status, duration) {}
+  recordError(nodeId, error) {}
+  getSummary() {}
+}
+
+// ========== 3. NodeContext 類別 ==========
+class NodeContext {
+  constructor(dependencies) {
+    this.logger = dependencies.logger;
+    this.tracer = dependencies.tracer;
+    this.config = dependencies.config;
+    this.services = dependencies.services;
+  }
+}
+
+// ========== 4. BaseNode 類別 ==========
+class BaseNode {
+  constructor(id, executor, options = {}) {
+    this.id = id;
+    this.executor = executor;
+    this.options = {
+      logInput: options.logInput || false,
+      logOutput: options.logOutput || false,
+      performanceThreshold: options.performanceThreshold || 1000,
+      retryCount: options.retryCount || 0,
+      timeout: options.timeout || 30000
+    };
+  }
+  
+  async run(ctx, input) {
+    const startTime = Date.now();
+    ctx.tracer.startSpan(this.id);
+    
+    try {
+      // 執行前日誌
+      ctx.logger.debug(this.id, "Starting execution", {
+        inputKeys: this.options.logInput ? input : Object.keys(input)
+      });
+      
+      // 執行節點邏輯
+      const output = await this.executor(ctx, input);
+      
+      // 效能警告
+      const duration = Date.now() - startTime;
+      if (duration > this.options.performanceThreshold) {
+        ctx.logger.warn(this.id, `Slow execution: ${duration}ms`);
+      }
+      
+      // 成功日誌
+      ctx.logger.info(this.id, "Completed successfully", {
+        duration,
+        outputKeys: this.options.logOutput ? output : Object.keys(output)
+      });
+      
+      ctx.tracer.endSpan(this.id, 'success', duration);
+      return output;
+      
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      
+      // 錯誤增強
+      error.nodeId = this.id;
+      error.executionPath = ctx.tracer.currentPath.join(' → ');
+      error.duration = duration;
+      
+      // 記錄錯誤
+      ctx.logger.error(this.id, "Execution failed", error);
+      ctx.tracer.recordError(this.id, error);
+      ctx.tracer.endSpan(this.id, 'error', duration);
+      
+      throw error;
+    }
+  }
+}
+```
+
+### 2. 監控儀表板規格
+
+```html
+<!-- 監控儀表板必備元素 -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Node Workflow Monitor</title>
+  <style>
+    /* 視覺化樣式 */
+    .node-success { background: #4CAF50; }
+    .node-error { background: #f44336; }
+    .node-slow { background: #ff9800; }
+  </style>
+</head>
+<body>
+  <!-- 1. 系統健康指標 -->
+  <div id="health-metrics">
+    <div class="metric">成功率: <span id="success-rate">99.5%</span></div>
+    <div class="metric">平均響應: <span id="avg-response">245ms</span></div>
+    <div class="metric">錯誤數: <span id="error-count">3</span></div>
+  </div>
+  
+  <!-- 2. 節點執行視覺化 -->
+  <div id="node-visualization">
+    <!-- 動態生成節點狀態圖 -->
+  </div>
+  
+  <!-- 3. 即時日誌串流 -->
+  <div id="log-stream">
+    <!-- 最近 20 條日誌 -->
+  </div>
+  
+  <!-- 4. 效能分析圖表 -->
+  <canvas id="performance-chart"></canvas>
+  
+  <script>
+    // 即時資料更新邏輯
+    setInterval(fetchMetrics, 1000);
+  </script>
+</body>
+</html>
+```
+
+### 3. API 回應格式標準
+
+```javascript
+// 成功回應
+{
+  "ok": true,
+  "data": { /* 業務資料 */ },
+  "executionSummary": {
+    "traceId": "uuid-v4",
+    "totalDuration": 2247,
+    "totalNodes": 6,
+    "successNodes": 6,
+    "failedNodes": 0,
+    "nodeMetrics": [
+      {
+        "nodeId": "ValidateInput",
+        "status": "success",
+        "duration": 12
+      }
+    ]
+  }
+}
+
+// 錯誤回應
+{
+  "ok": false,
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Email format invalid",
+    "nodeId": "ValidateInput",
+    "executionPath": "Main → ValidateInput",
+    "details": { /* 錯誤詳情 */ }
+  },
+  "executionSummary": { /* 同上 */ }
+}
+```
+
+---
+
+## 🛠️ 實作指南
+
+### 步驟 1: 環境準備
+
+```bash
+# Node.js 專案
+npm install ajv winston express
+
+# Python 專案
+pip install pydantic loguru fastapi
+
+# Go 專案
+go get github.com/sirupsen/logrus
+```
+
+### 步驟 2: 建立基礎架構
+
+1. 建立 `/core` 目錄，實作核心類別
+2. 建立 `/nodes` 目錄，存放業務節點
+3. 建立 `/workflows` 目錄，組合工作流
+4. 建立 `/monitoring` 目錄，監控相關
+
+### 步驟 3: 重構原有程式碼
+
+#### 3.1 識別並標記
+```javascript
+// === STEP 1: 識別流程 ===
+// [NODE] 輸入驗證
+// [NODE] 資料查詢
+// [PRESERVE] 複雜演算法
+// [NODE] 結果格式化
+```
+
+#### 3.2 建立節點
+```javascript
+// === STEP 2: 建立節點 ===
+const ValidateInputNode = new BaseNode(
+  "ValidateInput",
+  async (ctx, input) => {
+    // 原有驗證邏輯
+  }
+);
+```
+
+#### 3.3 組合工作流
+```javascript
+// === STEP 3: 組合工作流 ===
+function makeMainWorkflow() {
+  return new SequenceNode("MainWorkflow", [
+    ValidateInputNode,
+    QueryDataNode,
+    ComplexAlgorithmNode, // 保留的黑盒
+    FormatResultNode
+  ]);
+}
+```
+
+### 步驟 4: 整合與測試
+
+```javascript
+// Express 整合範例
+app.post("/api/process", async (req, res) => {
+  const workflow = makeMainWorkflow();
+  const ctx = new NodeContext({
+    logger: new Logger({ level: process.env.LOG_LEVEL }),
+    tracer: new ExecutionTracer(),
+    config: appConfig,
+    services: { db, cache, messageQueue }
+  });
+  
+  try {
+    const result = await workflow.run(ctx, req.body);
+    res.json({
+      ok: true,
+      data: result,
+      executionSummary: ctx.tracer.getSummary()
+    });
+  } catch (error) {
+    const statusCode = error.code === 'VALIDATION_ERROR' ? 400 : 500;
+    res.status(statusCode).json({
+      ok: false,
+      error: {
+        code: error.code,
+        message: error.message,
+        nodeId: error.nodeId,
+        executionPath: error.executionPath
+      },
+      executionSummary: ctx.tracer.getSummary()
+    });
+  }
+});
+```
+
+---
+
+## 💡 最佳實踐
+
+### 1. 節點設計原則
+
+| 原則 | 說明 | 範例 |
+|-----|------|------|
+| **單一職責** | 每個節點只做一件事 | ✅ ValidateEmailNode<br>❌ ValidateAndSendEmailNode |
+| **無狀態** | 節點不應保存狀態 | 使用 ctx 傳遞狀態 |
+| **冪等性** | 重複執行結果相同 | 避免在節點中累加計數 |
+| **可測試** | 獨立可測 | 透過 mock ctx 測試 |
+
+### 2. 錯誤處理策略
+
+```javascript
+// 策略 1: 快速失敗
+const strictNode = new BaseNode("Strict", async (ctx, input) => {
+  if (!input.required) {
+    throw new Error("Missing required field");
+  }
+});
+
+// 策略 2: 優雅降級
+const resilientNode = new BaseNode("Resilient", async (ctx, input) => {
+  try {
+    return await primaryService(input);
+  } catch (error) {
+    ctx.logger.warn("Resilient", "Primary failed, using fallback");
+    return await fallbackService(input);
+  }
+});
+
+// 策略 3: 部分成功
+const partialNode = new BaseNode("Partial", async (ctx, input) => {
+  const results = await Promise.allSettled([
+    service1(input),
+    service2(input),
+    service3(input)
+  ]);
+  
+  return {
+    successful: results.filter(r => r.status === 'fulfilled'),
+    failed: results.filter(r => r.status === 'rejected')
+  };
+});
+```
+
+### 3. 效能優化技巧
+
+```javascript
+// 技巧 1: 平行執行
+const parallelNode = new BaseNode("Parallel", async (ctx, input) => {
+  const [result1, result2] = await Promise.all([
+    fetchData1(input),
+    fetchData2(input)
+  ]);
+  return { result1, result2 };
+});
+
+// 技巧 2: 快取策略
+const cachedNode = new BaseNode("Cached", async (ctx, input) => {
+  const cacheKey = `node:${input.id}`;
+  const cached = await ctx.services.cache.get(cacheKey);
+  
+  if (cached) {
+    ctx.logger.debug("Cached", "Cache hit");
+    return cached;
+  }
+  
+  const result = await expensiveOperation(input);
+  await ctx.services.cache.set(cacheKey, result, 3600);
+  return result;
+});
+
+// 技巧 3: 批次處理
+const batchNode = new BaseNode("Batch", async (ctx, input) => {
+  const chunks = chunkArray(input.items, 100);
+  const results = [];
+  
+  for (const chunk of chunks) {
+    const batchResult = await processBatch(chunk);
+    results.push(...batchResult);
+  }
+  
+  return results;
+});
+```
+
+### 4. 監控與告警設定
+
+```yaml
+# monitoring-config.yaml
+alerts:
+  - name: high_error_rate
+    condition: error_rate > 5%
+    action: send_slack_notification
+    
+  - name: slow_node_execution
+    condition: node_duration > 5000ms
+    action: create_incident
+    
+  - name: memory_leak_detection
+    condition: memory_usage_trend > 10MB/hour
+    action: trigger_heap_dump
+```
+
+---
+
+## 📚 範例與模板
+
+### 完整範例：訂單處理系統
+
+#### Before: 傳統實作
+```javascript
+async function processOrder(orderData) {
+  try {
+    // 驗證訂單
+    if (!orderData.items || orderData.items.length === 0) {
+      throw new Error("Order must have items");
+    }
+    
+    // 檢查庫存
+    for (const item of orderData.items) {
+      const stock = await db.checkStock(item.productId);
+      if (stock < item.quantity) {
+        throw new Error(`Insufficient stock for ${item.productId}`);
+      }
+    }
+    
+    // 計算價格
+    let total = 0;
+    for (const item of orderData.items) {
+      const price = await db.getPrice(item.productId);
+      total += price * item.quantity;
+    }
+    
+    // 應用折扣
+    if (orderData.couponCode) {
+      const discount = await validateCoupon(orderData.couponCode);
+      total = total * (1 - discount);
+    }
+    
+    // 建立訂單
+    const order = await db.createOrder({
+      ...orderData,
+      total,
+      status: 'pending'
+    });
+    
+    // 發送確認郵件
+    await emailService.sendOrderConfirmation(order);
+    
+    return order;
+    
+  } catch (error) {
+    console.error("Order processing failed:", error);
+    throw error;
+  }
+}
+```
+
+#### After: Node-Based 實作
+```javascript
+// ===== 1. 節點定義 =====
+const ValidateOrderNode = new BaseNode(
+  "ValidateOrder",
+  async (ctx, input) => {
+    const { order } = input;
+    
+    if (!order.items || order.items.length === 0) {
+      throw new ValidationError("Order must have items");
+    }
+    
+    ctx.logger.info("ValidateOrder", "Order validated", {
+      itemCount: order.items.length
+    });
+    
+    return input;
+  },
+  { logInput: true }
+);
+
+const CheckInventoryNode = new BaseNode(
+  "CheckInventory",
+  async (ctx, input) => {
+    const { order } = input;
+    const inventoryChecks = [];
+    
+    for (const item of order.items) {
+      const stock = await ctx.services.db.checkStock(item.productId);
+      if (stock < item.quantity) {
+        throw new BusinessError(
+          `Insufficient stock for ${item.productId}`
+        );
+      }
+      inventoryChecks.push({ 
+        productId: item.productId, 
+        available: stock 
+      });
+    }
+    
+    return { ...input, inventoryChecks };
+  },
+  { performanceThreshold: 2000 }
+);
+
+const CalculatePriceNode = new BaseNode(
+  "CalculatePrice",
+  async (ctx, input) => {
+    const { order } = input;
+    let subtotal = 0;
+    
+    const prices = await Promise.all(
+      order.items.map(item => 
+        ctx.services.db.getPrice(item.productId)
+      )
+    );
+    
+    order.items.forEach((item, idx) => {
+      subtotal += prices[idx] * item.quantity;
+    });
+    
+    return { ...input, subtotal };
+  }
+);
+
+const ApplyDiscountNode = new BaseNode(
+  "ApplyDiscount",
+  async (ctx, input) => {
+    const { order, subtotal } = input;
+    let finalTotal = subtotal;
+    
+    if (order.couponCode) {
+      try {
+        const discount = await ctx.services.couponService
+          .validateCoupon(order.couponCode);
+        finalTotal = subtotal * (1 - discount);
+        
+        ctx.logger.info("ApplyDiscount", "Discount applied", {
+          couponCode: order.couponCode,
+          discount: `${discount * 100}%`
+        });
+      } catch (error) {
+        ctx.logger.warn("ApplyDiscount", "Invalid coupon", {
+          couponCode: order.couponCode
+        });
+      }
+    }
+    
+    return { ...input, finalTotal };
+  }
+);
+
+const CreateOrderNode = new BaseNode(
+  "CreateOrder",
+  async (ctx, input) => {
+    const { order, finalTotal } = input;
+    
+    const createdOrder = await ctx.services.db.createOrder({
+      ...order,
+      total: finalTotal,
+      status: 'pending',
+      createdAt: new Date()
+    });
+    
+    ctx.logger.info("CreateOrder", "Order created", {
+      orderId: createdOrder.id,
+      total: finalTotal
+    });
+    
+    return { ...input, createdOrder };
+  }
+);
+
+const SendConfirmationNode = new BaseNode(
+  "SendConfirmation",
+  async (ctx, input) => {
+    const { createdOrder } = input;
+    
+    await ctx.services.emailService.sendOrderConfirmation(createdOrder);
+    
+    ctx.logger.info("SendConfirmation", "Email sent", {
+      orderId: createdOrder.id,
+      email: createdOrder.customerEmail
+    });
+    
+    return { ...input, emailSent: true };
+  },
+  { retryCount: 3 }
+);
+
+// ===== 2. 工作流組合 =====
+function makeOrderProcessingWorkflow() {
+  return new SequenceNode("OrderProcessing", [
+    ValidateOrderNode,
+    CheckInventoryNode,
+    CalculatePriceNode,
+    new IfNode(
+      "HasCoupon",
+      (ctx, input) => !!input.order.couponCode,
+      ApplyDiscountNode,
+      new BaseNode("SkipDiscount", async (ctx, input) => ({
+        ...input,
+        finalTotal: input.subtotal
+      }))
+    ),
+    CreateOrderNode,
+    new TryNode("Notification", [
+      SendConfirmationNode,
+      new BaseNode("LogNotificationFailure", async (ctx, input) => {
+        ctx.logger.error("Notification", "Failed to send email");
+        return { ...input, emailSent: false };
+      })
+    ])
+  ]);
+}
+
+// ===== 3. API 整合 =====
+app.post("/api/orders", async (req, res) => {
+  const workflow = makeOrderProcessingWorkflow();
+  
+  const ctx = new NodeContext({
+    logger: new Logger({ 
+      level: process.env.LOG_LEVEL || 'INFO',
+      structured: true 
+    }),
+    tracer: new ExecutionTracer(),
+    services: {
+      db: databaseService,
+      emailService: emailService,
+      couponService: couponService
+    }
+  });
+  
+  try {
+    const result = await workflow.run(ctx, {
+      order: req.body,
+      metadata: {
+        requestId: req.headers['x-request-id'],
+        clientIp: req.ip
+      }
+    });
+    
+    res.status(201).json({
+      ok: true,
+      order: result.createdOrder,
+      executionSummary: ctx.tracer.getSummary()
+    });
+    
+  } catch (error) {
+    const statusCode = 
+      error instanceof ValidationError ? 400 :
+      error instanceof BusinessError ? 422 : 500;
+    
+    res.status(statusCode).json({
+      ok: false,
+      error: {
+        type: error.constructor.name,
+        message: error.message,
+        nodeId: error.nodeId,
+        executionPath: error.executionPath,
+        trace: ctx.tracer.getSummary()
+      }
+    });
+    
+    // 記錄到監控系統
+    ctx.logger.error("OrderProcessing", "Workflow failed", {
+      error: error.message,
+      nodeId: error.nodeId,
+      requestId: req.headers['x-request-id']
+    });
+  }
+});
+
+// ===== 4. 監控端點 =====
+app.get("/api/monitoring/health", (req, res) => {
+  res.json({
+    status: "healthy",
+    metrics: getSystemMetrics(),
+    timestamp: new Date()
+  });
+});
+
+app.get("/api/monitoring/traces/:traceId", async (req, res) => {
+  const trace = await getTraceById(req.params.traceId);
+  res.json(trace);
+});
+```
+
+---
+
+## ❓ 常見問題
+
+### Q1: 什麼時候不應該使用 Node-Based 重構？
+
+**A:** 以下情況不適合：
+- 簡單的 CRUD 操作（過度工程）
+- 純粹的數學計算函數
+- UI 渲染邏輯
+- 已經很清晰的小型函數
+
+### Q2: 如何處理資料庫事務？
+
+**A:** 使用 TransactionNode 包裝：
+```javascript
+const TransactionNode = new BaseNode("Transaction", async (ctx, input) => {
+  const tx = await ctx.services.db.beginTransaction();
+  try {
+    // 執行多個資料庫操作
+    const result = await innerWorkflow.run(ctx, input);
+    await tx.commit();
+    return result;
+  } catch (error) {
+    await tx.rollback();
+    throw error;
+  }
+});
+```
+
+### Q3: 如何處理大量資料？
+
+**A:** 使用串流和批次處理：
+```javascript
+const StreamProcessNode = new BaseNode("StreamProcess", async (ctx, input) => {
+  const stream = ctx.services.db.streamLargeDataset();
+  const batch = [];
+  
+  for await (const record of stream) {
+    batch.push(record);
+    
+    if (batch.length >= 1000) {
+      await processBatch(batch);
+      batch.length = 0;
+    }
+  }
+  
+  if (batch.length > 0) {
+    await processBatch(batch);
+  }
+});
+```
+
+### Q4: 如何進行單元測試？
+
+**A:** 每個節點獨立測試：
+```javascript
+describe('ValidateOrderNode', () => {
+  it('should validate order with items', async () => {
+    const mockCtx = {
+      logger: { info: jest.fn(), debug: jest.fn() },
+      tracer: { startSpan: jest.fn(), endSpan: jest.fn() }
+    };
+    
+    const input = {
+      order: { items: [{ productId: '123', quantity: 1 }] }
+    };
+    
+    const result = await ValidateOrderNode.run(mockCtx, input);
+    expect(result).toEqual(input);
+  });
+  
+  it('should throw on empty order', async () => {
+    const mockCtx = { /* ... */ };
+    const input = { order: { items: [] } };
+    
+    await expect(ValidateOrderNode.run(mockCtx, input))
+      .rejects.toThrow('Order must have items');
+  });
+});
+```
+
+### Q5: 如何處理長時間執行的任務？
+
+**A:** 使用非同步任務隊列：
+```javascript
+const QueueTaskNode = new BaseNode("QueueTask", async (ctx, input) => {
+  // 將任務加入隊列
+  const taskId = await ctx.services.queue.enqueue({
+    type: 'long-running-task',
+    payload: input
+  });
+  
+  // 立即返回任務 ID
+  return { 
+    taskId, 
+    status: 'queued',
+    checkUrl: `/api/tasks/${taskId}/status`
+  };
+});
+```
+
+---
+
+## 📝 完整 Prompt 模板
+
+以下是你可以直接使用的完整重構 Prompt：
+
+```markdown
+# Node-Based 架構重構請求
+
+請將以下程式碼重構為 Node-Based 架構，必須包含：
+
+## 核心要求
+1. **節點系統**：BaseNode, SequenceNode, IfNode, TryNode
+2. **可觀測性**：Logger, ExecutionTracer, 結構化日誌
+3. **錯誤追蹤**：精確的 nodeId 和執行路徑
+4. **效能監控**：自動記錄執行時間和效能警告
+
+## 重構原則
+1. 識別並拆分獨立的業務步驟為節點
+2. 保留複雜演算法為黑盒（加註解說明）
+3. 使用 IfNode 處理條件分支
+4. 使用 TryNode 處理錯誤容錯
+
+## 輸出要求
+1. 完整可執行的程式碼
+2. 包含監控儀表板 HTML
+3. API 整合範例
+4. 環境變數配置說明
+5. 單元測試範例
+
+## 原始程式碼
+[在這裡貼上你的程式碼]
+```
+
+---
+
+## 🚀 下一步行動
+
+1. **評估現有系統**：使用適用場景判斷表評估是否需要重構
+2. **選擇試點專案**：從小型、非關鍵系統開始
+3. **逐步實施**：按照實作指南分階段進行
+4. **監控效果**：使用儀表板追蹤改善指標
+5. **推廣經驗**：將成功經驗推廣到其他系統
+
+---
+
+## 📚 延伸閱讀
+
+- [Clean Architecture 原則](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
+- [Microservices Patterns](https://microservices.io/patterns/)
+- [Observability Engineering](https://www.honeycomb.io/blog/observability-engineering-book)
+- [Site Reliability Engineering](https://sre.google/books/)
+
+---
+
+## 🤝 貢獻指南
+
+歡迎提交改進建議！請遵循以下原則：
+- 保持範例的實用性和可執行性
+- 新增內容需包含具體範例
+- 確保文檔結構清晰、易於閱讀
+
+---
+
+**最後更新**: 2025-09  
+**維護者**: Ian Chou  
+**授權**: MIT License
