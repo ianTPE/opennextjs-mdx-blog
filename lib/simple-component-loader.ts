@@ -94,6 +94,7 @@ const componentMappings: Record<string, () => Promise<unknown>> = {
   '2025-06-xano-tea-booking-backend': () => import('../content/posts/2025-06-xano-tea-booking-backend/components/index'),
   '2025-08-llm-os-app-engineer-guide': () => import('../content/posts/2025-08-llm-os-app-engineer-guide/components/index'),
   '2025-08-llm-os-complete-guide': () => import('../content/posts/2025-08-llm-os-complete-guide/components/index'),
+  '2025-09-node-based-refactoring-guide': () => import('../content/posts/2025-09-node-based-refactoring-guide/components/index'),
 };
 
 // Smart loading with graceful fallback
